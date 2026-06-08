@@ -1,23 +1,24 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
-const schema = z.object({
-  email: z.string().email().max(255),
-  success: z.boolean(),
-});
-
-export const logLoginAttempt = createServerFn({ method: "POST" })
-  .inputValidator((d) => schema.parse(d))
-  .handler(async ({ data }) => {
-    const { getRequestHeader, getRequestIP } = await import("@tanstack/react-start/server");
-    const ip = getRequestIP({ xForwardedFor: true }) ?? null;
-    const ua = getRequestHeader("user-agent") ?? null;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("login_attempts").insert({
+// Direct client-side call (no SSR/server function).
+// Inserts a row in `login_attempts` so we have a basic audit trail.
+// Failure is non-fatal (best-effort fire-and-forget from auth.tsx).
+export async function logLoginAttempt({
+  data,
+}: {
+  data: { email: string; success: boolean };
+}) {
+  try {
+    let ua: string | null = null;
+    if (typeof navigator !== "undefined") ua = navigator.userAgent ?? null;
+    await supabase.from("login_attempts").insert({
       email: data.email,
-      ip_address: ip,
+      ip_address: null,
       user_agent: ua,
       success: data.success,
     });
     return { ok: true };
-  });
+  } catch {
+    return { ok: false };
+  }
+}

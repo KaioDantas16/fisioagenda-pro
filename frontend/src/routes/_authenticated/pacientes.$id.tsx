@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+// useServerFn replaced by direct async call (Supabase-only architecture)
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -552,7 +553,7 @@ function PortalAccessControl({ patient, onChange }: { patient: any; onChange: ()
   const [email, setEmail] = useState(patient.email ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ email: string; tempPassword: string } | null>(null);
-  const createAccess = useServerFn(createPatientPortalAccess);
+  const createAccess = createPatientPortalAccess;
 
   if (patient.patient_user_id) {
     return (
