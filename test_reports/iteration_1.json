@@ -1,0 +1,58 @@
+{
+  "summary": "Frontend smoke testing of FisioAgenda Pro (Vite + TanStack Router + Supabase). Authenticated as super_admin (kaiohhenrique21@gmail.com). Validated: /auth login, dashboard hero+stats+quick actions, sidebar nav, /pacientes list with 4 real patients + classifications, search filter, /agenda layout, /prontuario/novo SOAP form, /configuracoes tabs, MessageModal (WhatsApp/Email). Found 1 functional bug (patient row click does NOT navigate to /pacientes/<id>) and 2 minor deviations (MessageModal title text, missing Anterior/Próxima button text labels).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "PacientesList row click",
+        "issue": "Clicking on a patient row (Ana Clara linda text/avatar area) does NOT navigate to /pacientes/<id> detail page. URL remains /pacientes after click. The chat icon button works (opens MessageModal). The ChevronRight (>) icon on the right may be the only navigation trigger and is not exposed as the row click area, breaking the user expectation 'Clicar em uma linha de paciente navega para /pacientes/<id>'.",
+        "selector": "a/div wrapping patient row in /app/frontend/src/routes/_authenticated/pacientes.tsx",
+        "priority": "HIGH"
+      },
+      {
+        "component": "MessageModal",
+        "issue": "Modal title is 'Enviar mensagem' instead of expected 'Contato — [Nome do Paciente]' per spec. WhatsApp + E-mail buttons are present and message body is correctly pre-filled with patient name.",
+        "selector": "/app/frontend/src/components/MessageModal.tsx (DialogTitle)",
+        "priority": "LOW"
+      },
+      {
+        "component": "Agenda navigation buttons",
+        "issue": "Buttons 'Anterior' and 'Próxima' are not detected as visible text (only 'Hoje' detected). They are likely icon-only buttons without text labels — adds accessibility concern and deviates from spec ('navegação Anterior/Hoje/Próxima').",
+        "selector": "/app/frontend/src/routes/_authenticated/agenda.tsx",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Patient row → patient detail page",
+        "issue": "Patient detail page (/pacientes/<id>) could not be validated because the row click does not navigate. Tabs Resumo/Anamnese/Avaliação/Sessões/Sinais Vitais/Evolução/Financeiro/Anexos/Dados Cadastrais were therefore not exercised. Need a clickable link wrapping the whole row, e.g., <Link to=\"/pacientes/$id\" params={{id}}>.",
+        "affected_selectors": ["patient list row in pacientes.tsx"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Make the entire patient row in /pacientes clickable (wrap row in TanStack <Link to='/pacientes/$id' params={{ id: paciente.id }}>) so the user can open the patient profile by clicking the row. Currently only the chat icon (MessageModal) is reachable from the row.",
+    "Update MessageModal DialogTitle from 'Enviar mensagem' to 'Contato — {patient.nome}' per spec.",
+    "Add visible 'Anterior' and 'Próxima' text labels (or aria-label) to agenda week navigation buttons.",
+    "After fixing row navigation, retest tabs of patient detail (Resumo/Anamnese/Avaliação/Prontuários/Sessões/Sinais Vitais/Evolução/Financeiro/Anexos/Dados Cadastrais) and Mensagem / Novo prontuário / Nova sessão action buttons."
+  ],
+  "critical_code_review_comments": [
+    "PatientCard/row should be a single semantic <Link>; if there are interactive children (chat button) inside, ensure stopPropagation on the chat button and keep the parent as the navigation Link. This will fix the navigation bug.",
+    "MessageModal hard-codes generic title — should accept patient.nome and render dynamic 'Contato — {nome}'.",
+    "Console shows a 403 on a resource load — likely Supabase RLS on an optional table; verify it's not failing a required query (e.g., user_roles or clinic settings).",
+    "Some sidebar links resolved to 2 elements (dashboard 'Ver pacientes' button and sidebar 'Pacientes' link share role+name 'Pacientes') — consider distinguishing via aria-label for testability."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "85%"},
+  "test_credentials": "super_admin: kaiohhenrique21@gmail.com / Admin123# (Supabase prod) — VERIFIED working",
+  "seed_data_creation": "None. No data created/modified — read-only testing per instructions.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login flow + dashboard + sidebar nav + pacientes list + search + agenda + prontuario/novo + configuracoes + MessageModal (open) all WORKING. NOT validated: /pacientes/<id> detail page (blocked by row-click bug) and logout flow (was blocked by modal overlay in last test — likely fine once modal closed). Use exact=True on get_by_role('link', name='Pacientes') because dashboard has a 'Ver pacientes' button with overlapping name. SAB day in /agenda is shown with accent 'SÁB' (not detected by uppercase 'SAB' substring search).",
+  "rca of the issue": "PATIENT ROW CLICK BUG — Reproduction: 1) login as super_admin, 2) sidebar → Pacientes, 3) click anywhere on the 'Ana Clara linda' row text/avatar (not the chat icon nor the > chevron). Expected: navigate to /pacientes/<uuid>. Actual: URL stays at /pacientes. Likely cause: the patient row is rendered as a plain <div> with the ChevronRight icon visually suggesting navigation, but no <Link> wraps the row. Mitigation: in /app/frontend/src/routes/_authenticated/pacientes.tsx, wrap each patient row with `<Link to='/pacientes/$id' params={{ id: paciente.id }}>...</Link>` (or use onClick + navigate({to:'/pacientes/$id', params:{id}})). Stop event propagation on the inner chat button so MessageModal still works without triggering navigation."
+}
