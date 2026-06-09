@@ -1,4 +1,4 @@
-import jsPDF from "jsPDF";
+import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CLINIC } from "@/lib/brand";
 import { maskCpfDisplay, fmtBRL } from "@/lib/cpf";
