@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
 import { OWNER_PHOTO_URL, CLINIC, APPOINTMENT_STATUS, CLASSIFICATIONS } from "@/lib/brand";
 import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import {
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const today = new Date();
+  const { data: therapistId } = useEffectiveTherapistId();
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
   const weekStart = startOfWeek(today, { weekStartsOn: 0 });
@@ -31,20 +33,25 @@ function Dashboard() {
   const { ownerPhotoUrl } = useClinicAssets();
 
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", format(today, "yyyy-MM-dd")],
+    queryKey: ["dashboard-stats", format(today, "yyyy-MM-dd"), therapistId],
     queryFn: async () => {
+      if (!therapistId) return null;
       const [activePatients, todayCount, weekCount, monthAll, monthAttended] = await Promise.all([
-        supabase.from("patients").select("id", { count: "exact", head: true }).eq("active", true),
+        supabase.from("patients").select("id", { count: "exact", head: true }).eq("active", true).eq("therapist_id", therapistId),
         supabase.from("appointments").select("id", { count: "exact", head: true })
+          .eq("therapist_id", therapistId)
           .gte("starts_at", startOfDay(today).toISOString())
           .lte("starts_at", endOfDay(today).toISOString()),
         supabase.from("appointments").select("id", { count: "exact", head: true })
+          .eq("therapist_id", therapistId)
           .gte("starts_at", startOfDay(weekStart).toISOString())
           .lte("starts_at", endOfDay(weekEnd).toISOString()),
         supabase.from("appointments").select("id", { count: "exact", head: true })
+          .eq("therapist_id", therapistId)
           .gte("starts_at", monthStart.toISOString())
           .lte("starts_at", monthEnd.toISOString()),
         supabase.from("appointments").select("id", { count: "exact", head: true })
+          .eq("therapist_id", therapistId)
           .gte("starts_at", monthStart.toISOString())
           .lte("starts_at", monthEnd.toISOString())
           .eq("status", "realizado"),
@@ -59,27 +66,33 @@ function Dashboard() {
         attendance,
       };
     },
+    enabled: !!therapistId,
   });
 
   const { data: nextAppts = [] } = useQuery({
-    queryKey: ["dashboard-next-5"],
+    queryKey: ["dashboard-next-5", therapistId],
     queryFn: async () => {
+      if (!therapistId) return [];
       const { data } = await supabase
         .from("appointments")
         .select("*, patients(full_name, phone)")
+        .eq("therapist_id", therapistId)
         .gte("starts_at", new Date().toISOString())
         .order("starts_at")
         .limit(5);
       return data ?? [];
     },
+    enabled: !!therapistId,
   });
 
   const { data: attentionPatients = [] } = useQuery({
-    queryKey: ["dashboard-attention"],
+    queryKey: ["dashboard-attention", therapistId],
     queryFn: async () => {
+      if (!therapistId) return [];
       const { data } = await supabase
         .from("patients")
         .select("id, full_name, classification, phone")
+        .eq("therapist_id", therapistId)
         .in("classification", ["urgente", "atencao"])
         .eq("active", true);
       // ordena: urgente primeiro
@@ -87,14 +100,17 @@ function Dashboard() {
         (a: any, b: any) => (a.classification === "urgente" ? 0 : 1) - (b.classification === "urgente" ? 0 : 1),
       );
     },
+    enabled: !!therapistId,
   });
 
   const { data: birthdays = [] } = useQuery({
-    queryKey: ["dashboard-birthdays", format(today, "MM")],
+    queryKey: ["dashboard-birthdays", format(today, "MM"), therapistId],
     queryFn: async () => {
+      if (!therapistId) return [];
       const { data } = await supabase
         .from("patients")
         .select("id, full_name, birth_date")
+        .eq("therapist_id", therapistId)
         .not("birth_date", "is", null)
         .eq("active", true);
       const m = today.getMonth();
@@ -104,14 +120,17 @@ function Dashboard() {
           new Date(a.birth_date).getUTCDate() - new Date(b.birth_date).getUTCDate(),
         );
     },
+    enabled: !!therapistId,
   });
 
   const { data: weeklyChart = [] } = useQuery({
-    queryKey: ["dashboard-week-chart", format(weekStart, "yyyy-MM-dd")],
+    queryKey: ["dashboard-week-chart", format(weekStart, "yyyy-MM-dd"), therapistId],
     queryFn: async () => {
+      if (!therapistId) return [];
       const { data } = await supabase
         .from("appointments")
         .select("starts_at")
+        .eq("therapist_id", therapistId)
         .gte("starts_at", startOfDay(weekStart).toISOString())
         .lte("starts_at", endOfDay(weekEnd).toISOString());
       const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -122,6 +141,7 @@ function Dashboard() {
       });
       return labels.map((label, i) => ({ day: label, sessoes: counts[i] }));
     },
+    enabled: !!therapistId,
   });
 
   return (

@@ -102,6 +102,64 @@ INSERT INTO public.integration_settings (whatsapp_reminders_enabled, pix_enabled
 SELECT false, false
 WHERE NOT EXISTS (SELECT 1 FROM public.integration_settings);
 
+-- 5) set_therapist_id e Correção de Escopo de Pacientes
+CREATE OR REPLACE FUNCTION public.set_therapist_id()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_patient_therapist uuid;
+BEGIN
+  IF NEW.therapist_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_TABLE_NAME != 'patients' AND TG_TABLE_NAME != 'clinic_settings' THEN
+    BEGIN
+      SELECT therapist_id INTO v_patient_therapist
+      FROM public.patients
+      WHERE id = NEW.patient_id;
+      
+      IF v_patient_therapist IS NOT NULL THEN
+        NEW.therapist_id := v_patient_therapist;
+        RETURN NEW;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+    END;
+  END IF;
+
+  NEW.therapist_id := auth.uid();
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+  v_therapist_id uuid;
+BEGIN
+  SELECT id INTO v_therapist_id
+  FROM auth.users
+  WHERE email = 'jesuslenilson36@gmail.com';
+
+  IF v_therapist_id IS NOT NULL THEN
+    UPDATE public.clinic_settings SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.patients SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.appointments SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.sessions SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.records SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.vital_signs SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.goals SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.anamnese SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.functional_assessment SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.pain_map_entries SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.rom_measurements SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.special_tests SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+    UPDATE public.session_packages SET therapist_id = v_therapist_id WHERE therapist_id IS NULL OR therapist_id != v_therapist_id;
+  END IF;
+END $$;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Pós-migrations: rodar este SELECT para verificar
 -- SELECT 'session_packages' AS t, count(*) FROM public.session_packages

@@ -55,7 +55,7 @@ export function AppLayout() {
 
   const nav = isPaciente
     ? pacienteNav
-    : [...fisioNav, ...(isSuper ? [{ to: "/configuracoes" as const, label: "Config.", icon: Settings }] : [])];
+    : [...fisioNav, ...(me?.isAdmin ? [{ to: "/configuracoes" as const, label: "Config.", icon: Settings }] : [])];
 
   async function signOut() {
     await qc.cancelQueries();

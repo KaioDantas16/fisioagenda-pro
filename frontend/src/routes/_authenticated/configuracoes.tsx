@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,35 +28,37 @@ function Settings() {
   const navigate = useNavigate();
   const { data: me, isLoading } = useCurrentUser();
   useEffect(() => {
-    if (!isLoading && me && !me.isSuperAdmin) {
-      toast.error("Acesso restrito a super administradores.");
+    if (!isLoading && me && !me.isAdmin) {
+      toast.error("Acesso restrito a administradores.");
       navigate({ to: "/dashboard" });
     }
   }, [me, isLoading, navigate]);
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
-  if (!me?.isSuperAdmin) return null;
+  if (!me?.isAdmin) return null;
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl">Configurações</h1>
-        <p className="text-sm text-muted-foreground">Painel exclusivo de super administradores</p>
+        <p className="text-sm text-muted-foreground">
+          {me?.isSuperAdmin ? "Painel de super administrador" : "Painel da clínica"}
+        </p>
       </div>
       <Tabs defaultValue="clinic">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full h-auto">
+        <TabsList className={cn("grid w-full h-auto", me?.isSuperAdmin ? "grid-cols-2 sm:grid-cols-6" : "grid-cols-1 sm:grid-cols-3")}>
           <TabsTrigger value="clinic">Clínica</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
+          {me?.isSuperAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="theme">Aparência</TabsTrigger>
-          <TabsTrigger value="integrations">Integrações</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
+          {me?.isSuperAdmin && <TabsTrigger value="integrations">Integrações</TabsTrigger>}
+          {me?.isSuperAdmin && <TabsTrigger value="logs">Logs</TabsTrigger>}
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
         <TabsContent value="clinic" className="mt-5"><ClinicTab /></TabsContent>
-        <TabsContent value="users" className="mt-5"><UsersTab /></TabsContent>
+        {me?.isSuperAdmin && <TabsContent value="users" className="mt-5"><UsersTab /></TabsContent>}
         <TabsContent value="theme" className="mt-5"><ThemeTab /></TabsContent>
-        <TabsContent value="integrations" className="mt-5"><IntegrationsTab /></TabsContent>
-        <TabsContent value="logs" className="mt-5"><LogsTab /></TabsContent>
+        {me?.isSuperAdmin && <TabsContent value="integrations" className="mt-5"><IntegrationsTab /></TabsContent>}
+        {me?.isSuperAdmin && <TabsContent value="logs" className="mt-5"><LogsTab /></TabsContent>}
         <TabsContent value="reports" className="mt-5"><ReportsTab /></TabsContent>
       </Tabs>
     </div>
@@ -408,12 +412,15 @@ function LogsTab() {
 }
 
 function ReportsTab() {
+  const { data: therapistId } = useEffectiveTherapistId();
+
   async function loadCurrentMonthData() {
+    if (!therapistId) throw new Error("Therapist ID not loaded");
     const now = new Date();
     const ms = startOfMonth(now), me = endOfMonth(now);
     const [{ data: patients }, { data: appts }] = await Promise.all([
-      supabase.from("patients").select("*").eq("active", true).order("full_name"),
-      supabase.from("appointments").select("*").gte("starts_at", ms.toISOString()).lte("starts_at", me.toISOString()),
+      supabase.from("patients").select("*").eq("active", true).eq("therapist_id", therapistId).order("full_name"),
+      supabase.from("appointments").select("*").eq("therapist_id", therapistId).gte("starts_at", ms.toISOString()).lte("starts_at", me.toISOString()),
     ]);
     const list = (patients ?? []).map((p: any) => ({
       ...p,

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ function Agenda() {
   const [anchor, setAnchor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [open, setOpen] = useState(false);
+  const { data: therapistId } = useEffectiveTherapistId();
   const [form, setForm] = useState({
     patient_id: "",
     service: SERVICES[0],
@@ -39,25 +41,34 @@ function Agenda() {
   const days = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
 
   const { data: weekAppts = [] } = useQuery({
-    queryKey: ["appts", "week", format(weekStart, "yyyy-MM-dd")],
+    queryKey: ["appts", "week", format(weekStart, "yyyy-MM-dd"), therapistId],
     queryFn: async () => {
+      if (!therapistId) return [];
       const { data, error } = await supabase
         .from("appointments")
         .select("*, patients(full_name, phone)")
+        .eq("therapist_id", therapistId)
         .gte("starts_at", startOfDay(weekStart).toISOString())
         .lte("starts_at", endOfDay(endOfWeek(weekStart, { weekStartsOn: 0 })).toISOString())
         .order("starts_at");
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!therapistId,
   });
 
   const { data: patients = [] } = useQuery({
-    queryKey: ["patients"],
+    queryKey: ["patients", therapistId],
     queryFn: async () => {
-      const { data } = await supabase.from("patients").select("id, full_name").order("full_name");
+      if (!therapistId) return [];
+      const { data } = await supabase
+        .from("patients")
+        .select("id, full_name")
+        .eq("therapist_id", therapistId)
+        .order("full_name");
       return data ?? [];
     },
+    enabled: !!therapistId,
   });
 
   const dayAppts = weekAppts.filter((a: any) => isSameDay(new Date(a.starts_at), selected));
@@ -79,6 +90,7 @@ function Agenda() {
       duration_minutes: Number(form.duration_minutes),
       price: form.price ? Number(form.price) : null,
       notes: form.notes || null,
+      therapist_id: therapistId,
     });
     if (error) return toast.error(error.message);
     toast.success("Agendamento criado");

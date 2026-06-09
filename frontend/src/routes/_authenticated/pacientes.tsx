@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,13 +36,21 @@ function Pacientes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
+  const { data: therapistId } = useEffectiveTherapistId();
+
   const { data: patients = [], isLoading } = useQuery({
-    queryKey: ["patients"],
+    queryKey: ["patients", therapistId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("patients").select("*").order("full_name");
+      if (!therapistId) return [];
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("therapist_id", therapistId)
+        .order("full_name");
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!therapistId,
   });
 
   const filtered = patients.filter((p: any) => {
@@ -62,6 +71,7 @@ function Pacientes() {
       gender: form.gender || null,
       insurance: form.insurance || null,
       sessions_authorized: form.sessions_authorized ? Number(form.sessions_authorized) : null,
+      therapist_id: therapistId,
     };
     const { error } = await supabase.from("patients").insert(payload);
     if (error) return toast.error(error.message);
