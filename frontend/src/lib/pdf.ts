@@ -113,13 +113,24 @@ function header(doc: jsPDF, title: string, config: PdfConfig) {
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(config.clinicShortName, textX, 10);
+  
+  // Ajusta o tamanho da fonte dinamicamente com base no comprimento do nome completo da clínica
+  let fontSize = 14;
+  if (config.clinicName.length > 45) {
+    fontSize = 9;
+  } else if (config.clinicName.length > 35) {
+    fontSize = 11;
+  } else if (config.clinicName.length > 25) {
+    fontSize = 12;
+  }
+  doc.setFontSize(fontSize);
+  doc.text(config.clinicName, textX, 11);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(config.clinicName, textX, 14);
-  doc.text(config.address, textX, 18);
-  doc.text(`${config.phone} · ${config.instagram}`, textX, 22);
+  doc.text(config.address, textX, 16);
+  doc.text(`${config.phone} · ${config.instagram}`, textX, 20);
+  
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text(title, w - 14, 18, { align: "right" });
@@ -136,7 +147,10 @@ function footer(doc: jsPDF, config: PdfConfig) {
   doc.setFontSize(8);
   doc.setTextColor(90, 90, 90);
   const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  const line = `${config.clinicShortName} · ${config.owner} · ${config.crefito} · Gerado em ${now}`;
+  
+  // Se o nome completo for razoavelmente curto, usa ele no rodapé. Senão, usa a abreviação.
+  const footerName = config.clinicName.length < 30 ? config.clinicName : config.clinicShortName;
+  const line = `${footerName} · ${config.owner} · ${config.crefito} · Gerado em ${now}`;
   doc.text(line, 14, h - 9);
 }
 
