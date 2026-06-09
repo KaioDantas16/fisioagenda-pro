@@ -42,16 +42,18 @@ function Settings() {
         <p className="text-sm text-muted-foreground">Painel exclusivo de super administradores</p>
       </div>
       <Tabs defaultValue="clinic">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full h-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full h-auto">
           <TabsTrigger value="clinic">Clínica</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="theme">Aparência</TabsTrigger>
+          <TabsTrigger value="integrations">Integrações</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
         <TabsContent value="clinic" className="mt-5"><ClinicTab /></TabsContent>
         <TabsContent value="users" className="mt-5"><UsersTab /></TabsContent>
         <TabsContent value="theme" className="mt-5"><ThemeTab /></TabsContent>
+        <TabsContent value="integrations" className="mt-5"><IntegrationsTab /></TabsContent>
         <TabsContent value="logs" className="mt-5"><LogsTab /></TabsContent>
         <TabsContent value="reports" className="mt-5"><ReportsTab /></TabsContent>
       </Tabs>
@@ -373,3 +375,107 @@ function ReportsTab() {
     </div>
   );
 }
+
+function IntegrationsTab() {
+  const qc = useQueryClient();
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
+
+  const { data: settings } = useQuery({
+    queryKey: ["integration_settings"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("integration_settings")
+        .select("*").maybeSingle();
+      if (error && !/relation .* does not exist|PGRST205/i.test(error.message ?? "")) throw error;
+      return data ?? { whatsapp_reminders_enabled: false, pix_enabled: false, whatsapp_test_phone: "" };
+    },
+  });
+
+  async function toggleWA(enabled: boolean) {
+    const { error } = await (supabase.from as any)("integration_settings")
+      .update({ whatsapp_reminders_enabled: enabled }).eq("id", (settings as any)?.id);
+    if (error) return toast.error(error.message);
+    toast.success(enabled ? "Lembretes WhatsApp ativados ✓" : "Lembretes desativados");
+    qc.invalidateQueries({ queryKey: ["integration_settings"] });
+  }
+
+  async function togglePix(enabled: boolean) {
+    const { error } = await (supabase.from as any)("integration_settings")
+      .update({ pix_enabled: enabled }).eq("id", (settings as any)?.id);
+    if (error) return toast.error(error.message);
+    toast.success(enabled ? "Cobrança Pix ativada ✓" : "Cobrança Pix desativada");
+    qc.invalidateQueries({ queryKey: ["integration_settings"] });
+  }
+
+  async function sendTest() {
+    if (!/^\d{10,11}$/.test(testPhone.replace(/\D/g, ""))) {
+      return toast.error("Telefone inválido. Use DDD + número (10 ou 11 dígitos).");
+    }
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("send-reminder", {
+      body: { test_phone: testPhone.replace(/\D/g, "") },
+    });
+    setTesting(false);
+    if (error) return toast.error(error.message);
+    if (data?.ok) toast.success("Mensagem de teste enviada ✓");
+    else toast.error("Falha ao enviar. Confira os Secrets EVOLUTION_* nas Edge Functions.");
+  }
+
+  const waOn = !!(settings as any)?.whatsapp_reminders_enabled;
+  const pixOn = !!(settings as any)?.pix_enabled;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl p-5 shadow-card space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg">Cobrança Pix automática</h3>
+            <p className="text-sm text-muted-foreground">
+              Ao criar pacote com forma "Pix", gera QR Code automaticamente via Mercado Pago.
+              {pixOn ? " — Ativo." : " — Inativo."}
+            </p>
+          </div>
+          <Button variant={pixOn ? "outline" : "default"}
+            className={pixOn ? "" : "gradient-brand text-white"}
+            onClick={() => togglePix(!pixOn)}>
+            {pixOn ? "Desativar" : "Ativar"}
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
+          Configure o Secret <code className="font-mono">MERCADOPAGO_ACCESS_TOKEN</code> em
+          Supabase Dashboard → Edge Functions → Secrets.
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl p-5 shadow-card space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg">Lembretes WhatsApp automáticos</h3>
+            <p className="text-sm text-muted-foreground">
+              Envia mensagem 1 dia antes da sessão. {waOn ? "Próximo envio: hoje às 18h." : "— Inativo."}
+            </p>
+          </div>
+          <Button variant={waOn ? "outline" : "default"}
+            className={waOn ? "" : "gradient-brand text-white"}
+            onClick={() => toggleWA(!waOn)}>
+            {waOn ? "Desativar" : "Ativar"}
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Input placeholder="(64) 99999-9999 — número para teste"
+            value={testPhone} onChange={(e) => setTestPhone(e.target.value)} />
+          <Button variant="outline" onClick={sendTest} disabled={testing || !testPhone}>
+            {testing ? "Enviando…" : "Testar agora"}
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
+          Configure os Secrets <code className="font-mono">EVOLUTION_API_URL</code>,
+          {" "}<code className="font-mono">EVOLUTION_API_KEY</code> e
+          {" "}<code className="font-mono">EVOLUTION_INSTANCE</code>.
+          O agendamento diário precisa do pg_cron — veja /app/memory/DEPLOY_GUIDE.md
+        </div>
+      </div>
+    </div>
+  );
+}
+

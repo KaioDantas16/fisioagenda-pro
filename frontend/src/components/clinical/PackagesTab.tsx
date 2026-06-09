@@ -58,6 +58,8 @@ export function PackagesTab({ patientId }: { patientId: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [unit, setUnit] = useState("100");
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixPkg, setPixPkg] = useState<Pkg | null>(null);
   const [form, setForm] = useState({
     package_name: "10 sessões — Fisioterapia",
     total_sessions: "10",
@@ -74,9 +76,8 @@ export function PackagesTab({ patientId }: { patientId: string }) {
       const { data, error } = await (supabase.from as any)("session_packages")
         .select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
       if (error) {
-        // Tabela ainda não criada (migration pendente) — tratamos como lista vazia.
         if (/relation .* does not exist|PGRST205/i.test(error.message ?? "")) {
-          console.warn("[PackagesTab] session_packages table not provisioned yet. Apply migration: /app/frontend/supabase/migrations/202606080001_session_packages.sql");
+          console.warn("[PackagesTab] session_packages table not provisioned yet.");
           return [];
         }
         throw error;
@@ -85,6 +86,20 @@ export function PackagesTab({ patientId }: { patientId: string }) {
     },
     retry: false,
   });
+
+  // Busca paciente para passar nome ao modal de Pix
+  const { data: patient } = useQuery({
+    queryKey: ["patient-name", patientId],
+    queryFn: async () => {
+      const { data } = await supabase.from("patients").select("full_name").eq("id", patientId).single();
+      return data;
+    },
+  });
+
+  function openPix(p: Pkg) {
+    setPixPkg(p);
+    setPixOpen(true);
+  }
 
   function applyTemplate(t: typeof TEMPLATES[number]) {
     setForm((f) => ({
@@ -284,9 +299,16 @@ export function PackagesTab({ patientId }: { patientId: string }) {
                     confirmLabel="Confirmar uso"
                     onConfirm={() => useSession(p)} />
                   {p.payment_status !== "pago" && (
-                    <Button size="sm" variant="outline" onClick={() => markPaid(p)}>
-                      Marcar como pago
-                    </Button>
+                    <>
+                      {p.payment_method === "Pix" && (
+                        <Button size="sm" variant="outline" onClick={() => openPix(p)}>
+                          <QrCode className="h-3.5 w-3.5 mr-1" />Cobrar via Pix
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => markPaid(p)}>
+                        Marcar como pago
+                      </Button>
+                    </>
                   )}
                   <ConfirmDialog
                     trigger={<Button size="sm" variant="ghost" className="text-destructive">Excluir</Button>}
@@ -301,6 +323,18 @@ export function PackagesTab({ patientId }: { patientId: string }) {
             );
           })}
         </ul>
+      )}
+
+      {pixPkg && patient && (
+        <PixCheckoutModal
+          open={pixOpen}
+          onOpenChange={setPixOpen}
+          packageId={pixPkg.id}
+          amount={Number(pixPkg.price_total)}
+          description={`${pixPkg.package_name} — ${patient.full_name}`}
+          patientName={patient.full_name}
+          onPaid={() => qc.invalidateQueries({ queryKey: ["packages", patientId] })}
+        />
       )}
     </div>
   );
