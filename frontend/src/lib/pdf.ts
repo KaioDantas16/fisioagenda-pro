@@ -15,7 +15,8 @@ const THEME_COLORS: Record<string, { primary: [number, number, number]; accent: 
   forest: { primary: [40, 110, 80], accent: [90, 170, 100] },        // Floresta Calma
   sunset: { primary: [210, 80, 45], accent: [240, 150, 50] },         // Pôr do Sol
   violet: { primary: [120, 65, 175], accent: [180, 100, 190] },       // Violeta Sereno
-  graphite: { primary: [70, 75, 85], accent: [110, 120, 130] }       // Grafite Profissional
+  graphite: { primary: [70, 75, 85], accent: [110, 120, 130] },      // Grafite Profissional
+  dark: { primary: [56, 189, 248], accent: [139, 92, 246] }          // Modo Escuro Premium
 };
 
 // =============================================================================
