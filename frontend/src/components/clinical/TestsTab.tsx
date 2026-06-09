@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -46,7 +46,10 @@ export function TestsTab({ patientId }: { patientId: string }) {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button className="gradient-brand text-white"><Plus className="h-4 w-4 mr-1" />Novo teste</Button></DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-lg">
-            <DialogHeader><DialogTitle>Teste especial</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Teste especial</DialogTitle>
+              <DialogDescription className="sr-only">Registre o resultado de um teste especial (positivo, negativo ou inconclusivo).</DialogDescription>
+            </DialogHeader>
             <form onSubmit={save} className="space-y-3 max-h-[70vh] overflow-y-auto">
               <div><Label>Data</Label><Input type="date" value={form.performed_at} onChange={(e) => setForm({ ...form, performed_at: e.target.value })} /></div>
               <div><Label>Teste (catálogo)</Label>

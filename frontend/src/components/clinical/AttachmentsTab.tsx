@@ -44,9 +44,10 @@ export function AttachmentsTab({ patientId }: { patientId: string }) {
   }
 
   async function remove(a: any) {
-    if (!confirm("Excluir anexo?")) return;
     await supabase.storage.from("clinic-assets").remove([a.storage_path]);
-    await (supabase.from as any)("attachments").delete().eq("id", a.id);
+    const { error } = await (supabase.from as any)("attachments").delete().eq("id", a.id);
+    if (error) return toast.error(error.message);
+    toast.success("Anexo excluído");
     qc.invalidateQueries({ queryKey: ["attachments", patientId] });
   }
 
@@ -69,7 +70,13 @@ export function AttachmentsTab({ patientId }: { patientId: string }) {
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => download(a)}><Download className="h-3.5 w-3.5 mr-1" />Abrir</Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(a)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          <ConfirmDialog
+            trigger={<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>}
+            title="Excluir anexo?"
+            description={`O arquivo "${a.file_name}" será removido permanentemente do storage e do banco. Esta ação não pode ser desfeita.`}
+            confirmLabel="Excluir permanentemente"
+            destructive
+            onConfirm={() => remove(a)} />
         </div>
       ))}
     </div>

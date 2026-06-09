@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LOGO_URL, CLINIC, applyTheme } from "@/lib/brand";
+import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -27,10 +28,17 @@ export function AppLayout() {
   const isSuper = !!me?.isSuperAdmin;
   const isPaciente = !!me?.isPaciente && !me?.isAdmin;
 
-  // Carrega tema da clínica
+  // Carrega tema: primeiro localStorage (rápido, sem flash), depois sincroniza com clinic_settings.
   useEffect(() => {
+    if (typeof localStorage !== "undefined") {
+      const cached = localStorage.getItem("fisio-theme");
+      if (cached) applyTheme(cached);
+    }
     supabase.from("clinic_settings").select("theme").maybeSingle().then(({ data }) => {
-      if (data?.theme) applyTheme(data.theme);
+      if (data?.theme) {
+        applyTheme(data.theme);
+        if (typeof localStorage !== "undefined") localStorage.setItem("fisio-theme", data.theme);
+      }
     });
   }, []);
 
@@ -56,11 +64,13 @@ export function AppLayout() {
     navigate({ to: "/auth", replace: true });
   }
 
+  const { logoUrl } = useClinicAssets();
+
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-60 bg-sidebar border-r border-sidebar-border z-30">
         <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
-          <img src={LOGO_URL} alt="" className="h-10 w-10 rounded-full object-contain bg-white" />
+          <img src={logoUrl} alt="" className="h-10 w-10 rounded-full object-contain bg-white" />
           <div className="min-w-0">
             <p className="font-display font-bold text-sm leading-tight">FisioAgenda Pro</p>
             <p className="text-[11px] text-muted-foreground truncate">
@@ -98,7 +108,7 @@ export function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0 md:ml-60">
         <header className="h-14 px-4 lg:px-6 border-b bg-card flex items-center gap-3 sticky top-0 z-20 md:hidden">
-          <img src={LOGO_URL} alt="" className="h-8 w-8 rounded-full bg-white object-contain" />
+          <img src={logoUrl} alt="" className="h-8 w-8 rounded-full bg-white object-contain" />
           <p className="font-display font-bold flex-1">FisioAgenda Pro</p>
           {isSuper && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">

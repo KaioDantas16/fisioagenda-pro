@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -40,7 +40,10 @@ export function PerimetryTab({ patientId }: { patientId: string }) {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button className="gradient-brand text-white"><Plus className="h-4 w-4 mr-1" />Nova medida</Button></DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-lg">
-            <DialogHeader><DialogTitle>Perimetria</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Perimetria</DialogTitle>
+              <DialogDescription className="sr-only">Registre medidas perimétricas em centímetros para segmentos corporais.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Data</Label><Input type="date" value={form.measured_at} onChange={(e) => setForm({ ...form, measured_at: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">

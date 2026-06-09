@@ -1,9 +1,19 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CLINIC } from "@/lib/brand";
+import { maskCpfDisplay, fmtBRL } from "@/lib/cpf";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const PRIMARY: [number, number, number] = [26, 111, 181];
-const ACCENT: [number, number, number] = [76, 175, 80];
+const PRIMARY: [number, number, number] = [26, 111, 181];   // #1a6fb5
+const ACCENT: [number, number, number] = [76, 175, 80];     // #4caf50
+
+// =============================================================================
+// PDF chrome — cabeçalho (gradiente azul→verde 28mm) e rodapé padrão.
+// SEM bloco de assinatura — nunca renderizar "Assinatura do profissional"
+// no corpo dos PDFs do profissional. Apenas o PDF de Anamnese tem assinatura
+// do PACIENTE.
+// =============================================================================
 
 function header(doc: jsPDF, title: string) {
   const w = doc.internal.pageSize.getWidth();
@@ -36,21 +46,39 @@ function footer(doc: jsPDF) {
   const h = doc.internal.pageSize.getHeight();
   doc.setDrawColor(...ACCENT);
   doc.setLineWidth(0.6);
-  doc.line(14, h - 18, w - 14, h - 18);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...PRIMARY);
-  doc.text(CLINIC.owner, 14, h - 12);
+  doc.line(14, h - 14, w - 14, h - 14);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(80, 80, 80);
-  doc.text(CLINIC.crefito, 14, h - 7);
-  doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, w - 14, h - 7, { align: "right" });
+  doc.setFontSize(8);
+  doc.setTextColor(90, 90, 90);
+  const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const line = `${CLINIC.shortName} · ${CLINIC.owner} · ${CLINIC.crefito} · Gerado em ${now}`;
+  doc.text(line, 14, h - 9);
 }
 
-function withChrome(doc: jsPDF, title: string) { header(doc, title); footer(doc); }
+function paginate(doc: jsPDF) {
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Página ${i} de ${pageCount}`, w - 14, h - 9, { align: "right" });
+  }
+}
+
+function withChrome(doc: jsPDF, title: string) {
+  header(doc, title);
+  footer(doc);
+}
 function newDoc() { return new jsPDF({ unit: "mm", format: "a4" }); }
-const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
-const fmtMoney = (n: any) => n ? `R$ ${Number(n).toFixed(2).replace(".", ",")}` : "—";
+
+// =============================================================================
+// Formatadores
+// =============================================================================
+const fmtDate = (d: any) => d ? format(new Date(d), "dd/MM/yyyy", { locale: ptBR }) : "—";
+const fmtDateTime = (d: any) => d ? format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
 
 function sectionTitle(doc: jsPDF, text: string, y: number) {
   doc.setFont("helvetica", "bold");
@@ -77,14 +105,16 @@ function patientHeader(doc: jsPDF, patient: any, y: number) {
     patient.phone && `Tel: ${patient.phone}`,
     patient.email && `E-mail: ${patient.email}`,
     patient.birth_date && `Nasc: ${fmtDate(patient.birth_date)}`,
-    patient.cpf && `CPF: ${patient.cpf}`,
-    patient.insurance && `Plano: ${patient.insurance}`,
+    patient.cpf && `CPF: ${maskCpfDisplay(patient.cpf)}`,
+    patient.insurance_plan && `Plano: ${patient.insurance_plan}`,
   ].filter(Boolean).join("  ·  ");
   doc.text(info, 14, y);
   return y + 6;
 }
 
-// ============ 1) PRONTUÁRIO COMPLETO ============
+// =============================================================================
+// 1) PRONTUÁRIO COMPLETO
+// =============================================================================
 export function downloadProntuarioPDF(args: {
   patient: any; records: any[]; vitals: any[]; sessions: any[];
   anamnese?: any; functional?: any[]; painMap?: any[]; rom?: any[]; tests?: any[]; perimetry?: any[];
@@ -179,47 +209,45 @@ export function downloadProntuarioPDF(args: {
     y = pageGuard(doc, y + 4, TITLE); sectionTitle(doc, "Histórico de Sessões", y);
     autoTable(doc, { startY: y + 2,
       head: [["Data", "Procedimento", "Status", "Valor"]],
-      body: args.sessions.map((s) => [new Date(s.starts_at).toLocaleString("pt-BR"), s.procedure ?? "—", s.status ?? "—", fmtMoney(s.price)]),
+      body: args.sessions.map((s) => [fmtDateTime(s.starts_at ?? s.session_date), s.procedure ?? "—", s.status ?? "—", fmtBRL(s.price)]),
       headStyles: { fillColor: PRIMARY, textColor: 255 }, styles: { fontSize: 9, cellPadding: 2 },
       didDrawPage: () => withChrome(doc, TITLE) });
-    y = (doc as any).lastAutoTable.finalY + 14;
   }
 
-  y = pageGuard(doc, y, TITLE, 30);
-  doc.setDrawColor(120, 120, 120); doc.line(14, y, 90, y);
-  doc.setFontSize(9); doc.setTextColor(80, 80, 80);
-  doc.text("Assinatura do profissional", 14, y + 5);
-
+  paginate(doc);
   doc.save(`prontuario-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 2) RECIBO DE SESSÃO ============
+// =============================================================================
+// 2) COMPROVANTE DE SESSÃO
+// =============================================================================
 export function downloadSessionReceiptPDF(args: { patient: any; session: any }) {
   const TITLE = "Comprovante de Sessão";
   const doc = newDoc(); withChrome(doc, TITLE);
   let y = 42;
   doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-  doc.text("Recibo de Atendimento", 14, y); y += 10;
+  doc.text("Recibo de Atendimento", 14, y); y += 8;
   autoTable(doc, { startY: y,
     body: [
       ["Paciente", args.patient.full_name],
-      ["Data", new Date(args.session.starts_at).toLocaleString("pt-BR")],
+      ["CPF", maskCpfDisplay(args.patient.cpf)],
+      ["Data", fmtDateTime(args.session.starts_at ?? args.session.session_date)],
       ["Procedimento", args.session.procedure ?? "—"],
-      ["Duração", `${args.session.duration_minutes} min`],
+      ["Duração", args.session.duration_minutes ? `${args.session.duration_minutes} min` : "—"],
       ["Forma de pagamento", args.session.payment_method ?? "—"],
-      ["Valor", fmtMoney(args.session.price)],
+      ["Valor", fmtBRL(args.session.price)],
       ["Status", args.session.status ?? "—"],
     ],
     styles: { fontSize: 11, cellPadding: 3 },
     columnStyles: { 0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 50 } },
     didDrawPage: () => withChrome(doc, TITLE) });
-  const fy = (doc as any).lastAutoTable.finalY + 20;
-  doc.setDrawColor(120, 120, 120); doc.line(14, fy, 90, fy);
-  doc.setFontSize(9); doc.text("Assinatura do profissional", 14, fy + 5);
+  paginate(doc);
   doc.save(`comprovante-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 3) RELATÓRIO MENSAL ============
+// =============================================================================
+// 3) RELATÓRIO MENSAL
+// =============================================================================
 export function downloadMonthlyReportPDF(args: {
   monthLabel: string; patients: any[];
   totals: { totalPatients: number; totalSessions: number; attendance: number; revenue: number };
@@ -233,7 +261,7 @@ export function downloadMonthlyReportPDF(args: {
       ["Pacientes ativos", String(args.totals.totalPatients)],
       ["Total de sessões", String(args.totals.totalSessions)],
       ["Taxa de presença", `${args.totals.attendance.toFixed(1)}%`],
-      ["Receita estimada", fmtMoney(args.totals.revenue)],
+      ["Receita estimada", fmtBRL(args.totals.revenue)],
     ],
     styles: { fontSize: 11, cellPadding: 3 },
     columnStyles: { 0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 60 } },
@@ -245,10 +273,13 @@ export function downloadMonthlyReportPDF(args: {
     body: args.patients.map((p) => [p.full_name, p.phone ?? "—", p.classification ?? "—", String(p.session_count ?? 0)]),
     headStyles: { fillColor: PRIMARY, textColor: 255 }, styles: { fontSize: 9, cellPadding: 2 },
     didDrawPage: () => withChrome(doc, TITLE) });
+  paginate(doc);
   doc.save(`relatorio-${args.monthLabel.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 4) FREQUÊNCIA ============
+// =============================================================================
+// 4) FREQUÊNCIA
+// =============================================================================
 export function downloadFrequenciaPDF(args: { patient: any; sessions: any[]; periodLabel: string }) {
   const TITLE = `Frequência — ${args.periodLabel}`;
   const doc = newDoc(); withChrome(doc, TITLE);
@@ -275,13 +306,16 @@ export function downloadFrequenciaPDF(args: { patient: any; sessions: any[]; per
   sectionTitle(doc, "Detalhamento", y);
   autoTable(doc, { startY: y + 2,
     head: [["Data", "Procedimento", "Status"]],
-    body: args.sessions.map((s) => [new Date(s.starts_at).toLocaleString("pt-BR"), s.procedure ?? "—", s.status]),
+    body: args.sessions.map((s) => [fmtDateTime(s.starts_at), s.procedure ?? "—", s.status]),
     headStyles: { fillColor: PRIMARY, textColor: 255 }, styles: { fontSize: 9, cellPadding: 2 },
     didDrawPage: () => withChrome(doc, TITLE) });
+  paginate(doc);
   doc.save(`frequencia-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 5) ANAMNESE ============
+// =============================================================================
+// 5) ANAMNESE — único PDF com assinatura DO PACIENTE.
+// =============================================================================
 export function downloadAnamnesePDF(args: { patient: any; anamnese: any }) {
   const TITLE = "Anamnese";
   const doc = newDoc(); withChrome(doc, TITLE);
@@ -301,11 +335,21 @@ export function downloadAnamnesePDF(args: { patient: any; anamnese: any }) {
     autoTable(doc, { startY: y, body: rows, styles: { fontSize: 10, cellPadding: 3 },
       columnStyles: { 0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 50 } },
       didDrawPage: () => withChrome(doc, TITLE) });
+    y = (doc as any).lastAutoTable.finalY + 20;
   }
+  // Assinatura do PACIENTE (somente neste PDF).
+  y = pageGuard(doc, y, TITLE, 40);
+  doc.setDrawColor(120, 120, 120); doc.line(14, y, 90, y);
+  doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+  doc.text("Assinatura do paciente", 14, y + 5);
+  doc.text(`Data: ____/____/______`, 14, y + 12);
+  paginate(doc);
   doc.save(`anamnese-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 6) FINANCEIRO ============
+// =============================================================================
+// 6) RELATÓRIO FINANCEIRO
+// =============================================================================
 export function downloadFinancialPDF(args: {
   periodLabel: string;
   byMethod: { method: string; total: number; count: number }[];
@@ -317,14 +361,14 @@ export function downloadFinancialPDF(args: {
   let y = 42;
   sectionTitle(doc, "Receita total", y);
   doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.setTextColor(...ACCENT);
-  doc.text(fmtMoney(args.grandTotal), 14, y + 12);
+  doc.text(fmtBRL(args.grandTotal), 14, y + 12);
   doc.setTextColor(40, 40, 40);
   y += 22;
 
   sectionTitle(doc, "Por forma de pagamento", y);
   autoTable(doc, { startY: y + 2,
     head: [["Forma", "Sessões", "Receita"]],
-    body: args.byMethod.map((r) => [r.method, String(r.count), fmtMoney(r.total)]),
+    body: args.byMethod.map((r) => [r.method, String(r.count), fmtBRL(r.total)]),
     headStyles: { fillColor: PRIMARY, textColor: 255 }, styles: { fontSize: 10, cellPadding: 2 },
     didDrawPage: () => withChrome(doc, TITLE) });
   y = (doc as any).lastAutoTable.finalY + 6;
@@ -332,14 +376,17 @@ export function downloadFinancialPDF(args: {
   sectionTitle(doc, "Top pacientes", y);
   autoTable(doc, { startY: y + 2,
     head: [["Paciente", "Sessões", "Receita"]],
-    body: args.topPatients.map((p) => [p.full_name, String(p.sessions), fmtMoney(p.total)]),
+    body: args.topPatients.map((p) => [p.full_name, String(p.sessions), fmtBRL(p.total)]),
     headStyles: { fillColor: PRIMARY, textColor: 255 }, styles: { fontSize: 10, cellPadding: 2 },
     didDrawPage: () => withChrome(doc, TITLE) });
 
+  paginate(doc);
   doc.save(`financeiro-${args.periodLabel.replace(/\s+/g, "_")}.pdf`);
 }
 
-// ============ 7) EVOLUÇÃO CLÍNICA ============
+// =============================================================================
+// 7) EVOLUÇÃO CLÍNICA
+// =============================================================================
 export function downloadClinicalEvolutionPDF(args: { patient: any; records: any[] }) {
   const TITLE = "Evolução Clínica";
   const doc = newDoc(); withChrome(doc, TITLE);
@@ -347,7 +394,6 @@ export function downloadClinicalEvolutionPDF(args: { patient: any; records: any[
   y = patientHeader(doc, args.patient, y);
   y += 4; sectionTitle(doc, "Evolução cronológica (EVA / escore)", y); y += 2;
 
-  // Sparkline simples (ASCII-free), barras horizontais por registro
   const records = args.records.slice().sort((a, b) => +new Date(a.record_date) - +new Date(b.record_date));
   if (records.length === 0) {
     doc.setFont("helvetica", "italic"); doc.text("Sem registros para gerar gráfico.", 14, y + 6);
@@ -360,7 +406,6 @@ export function downloadClinicalEvolutionPDF(args: { patient: any; records: any[
       didDrawPage: () => withChrome(doc, TITLE) });
     y = (doc as any).lastAutoTable.finalY + 8;
 
-    // Gráfico de barras EVA
     y = pageGuard(doc, y, TITLE, 80);
     sectionTitle(doc, "EVA ao longo do tempo", y); y += 4;
     const chartX = 20, chartY = y, chartW = 170, chartH = 60;
@@ -369,14 +414,22 @@ export function downloadClinicalEvolutionPDF(args: { patient: any; records: any[
     const barW = chartW / records.length;
     records.forEach((r, i) => {
       const v = r.pain_scale ?? 0;
-      const h = (v / max) * chartH;
+      const hBar = (v / max) * chartH;
       const color: [number, number, number] = v <= 3 ? [76, 175, 80] : v <= 6 ? [245, 158, 11] : [239, 68, 68];
       doc.setFillColor(...color);
-      doc.rect(chartX + i * barW + 1, chartY + chartH - h, Math.max(barW - 2, 1), h, "F");
+      doc.rect(chartX + i * barW + 1, chartY + chartH - hBar, Math.max(barW - 2, 1), hBar, "F");
     });
     doc.setFontSize(7); doc.setTextColor(120, 120, 120);
     doc.text("0", chartX - 4, chartY + chartH);
     doc.text("10", chartX - 5, chartY + 3);
+    const first = records[0].pain_scale ?? 0;
+    const last = records[records.length - 1].pain_scale ?? 0;
+    if (records.length > 1 && first > 0) {
+      const pct = (((first - last) / first) * 100).toFixed(1);
+      doc.setFontSize(10); doc.setTextColor(40, 40, 40);
+      doc.text(`Melhora percentual: ${pct}% (de ${first}/10 para ${last}/10)`, 14, chartY + chartH + 10);
+    }
   }
+  paginate(doc);
   doc.save(`evolucao-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }

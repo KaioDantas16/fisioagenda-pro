@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, MessageCircle, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { CLASSIFICATIONS } from "@/lib/brand";
@@ -83,7 +83,10 @@ function Pacientes() {
             <Button className="gradient-brand text-white"><Plus className="h-4 w-4 mr-2" />Novo paciente</Button>
           </DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Novo paciente</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Novo paciente</DialogTitle>
+              <DialogDescription className="sr-only">Cadastre um novo paciente preenchendo os dados básicos.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div>
                 <Label>Nome completo *</Label>

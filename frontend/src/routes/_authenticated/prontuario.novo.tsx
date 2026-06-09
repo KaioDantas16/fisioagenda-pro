@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, UserPlus, FileText, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -189,6 +189,7 @@ function NovoProntuario() {
         <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cadastro rápido</DialogTitle>
+            <DialogDescription className="sr-only">Cadastre rapidamente um novo paciente para o prontuário.</DialogDescription>
           </DialogHeader>
           <form onSubmit={quickCreate} className="space-y-3">
             <div>

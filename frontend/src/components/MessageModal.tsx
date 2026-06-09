@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,7 +39,10 @@ export function MessageModal({ patientName, phone, email, trigger }: Props) {
         )}
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-md">
-        <DialogHeader><DialogTitle>{patientName ? `Contato — ${patientName}` : "Enviar mensagem"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{patientName ? `Contato — ${patientName}` : "Enviar mensagem"}</DialogTitle>
+          <DialogDescription className="sr-only">Envie uma mensagem ao paciente via WhatsApp ou e-mail.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Modelos rápidos</Label>

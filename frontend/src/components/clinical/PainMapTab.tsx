@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -70,7 +70,10 @@ export function PainMapTab({ patientId }: { patientId: string }) {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button className="gradient-brand text-white"><Plus className="h-4 w-4 mr-1" />Mapear dor</Button></DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Mapa corporal de dor</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Mapa corporal de dor</DialogTitle>
+              <DialogDescription className="sr-only">Adicione um novo ponto de dor com região, lado, intensidade e qualidade.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3">
               <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

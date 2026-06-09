@@ -11,9 +11,20 @@ export function unmaskCPF(value: string): string {
   return (value ?? "").replace(/\D/g, "");
 }
 
-/** Mascara CPF para exibição em PDFs/relatórios (mantém só primeiros e últimos dígitos). */
+/**
+ * Mascara CPF para exibição em PDFs/relatórios.
+ * Formato: ***.***.NNN-NN (apenas os últimos 5 dígitos visíveis).
+ */
 export function maskCpfDisplay(value?: string | null): string {
   const d = (value ?? "").replace(/\D/g, "");
   if (d.length !== 11) return value ?? "—";
-  return `${d.slice(0, 3)}.***.***-${d.slice(9)}`;
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "***.***.$3-$4");
+}
+
+/** Formata valor em reais (pt-BR). Ex: 1234.5 → "R$ 1.234,50". */
+export function fmtBRL(value?: number | string | null): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }

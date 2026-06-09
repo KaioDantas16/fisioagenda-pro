@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { addDays, format, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -93,9 +94,9 @@ function Agenda() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Excluir este agendamento?")) return;
     const { error } = await supabase.from("appointments").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    toast.success("Agendamento excluído");
     qc.invalidateQueries({ queryKey: ["appts"] });
   }
 
@@ -117,7 +118,10 @@ function Agenda() {
               <Button className="gradient-brand text-white" onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" />Novo</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Novo agendamento</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Novo agendamento</DialogTitle>
+                <DialogDescription className="sr-only">Crie um novo agendamento para um paciente.</DialogDescription>
+              </DialogHeader>
               <form onSubmit={save} className="space-y-3">
                 <div>
                   <Label>Paciente *</Label>
@@ -225,9 +229,15 @@ function Agenda() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="ghost" size="icon" onClick={() => remove(a.id)} className="text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <ConfirmDialog
+                    trigger={<Button variant="ghost" size="icon" className="text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>}
+                    title="Excluir agendamento?"
+                    description="Esta ação não pode ser desfeita. O agendamento será removido permanentemente."
+                    confirmLabel="Excluir permanentemente"
+                    destructive
+                    onConfirm={() => remove(a.id)} />
                 </li>
               );
             })}

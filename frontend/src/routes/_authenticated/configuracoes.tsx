@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { THEMES, applyTheme } from "@/lib/brand";
 import { waLink } from "@/lib/whatsapp";
@@ -75,23 +75,39 @@ function ClinicTab() {
     const { error } = await supabase.from("clinic_settings").update({
       name: form.name, address: form.address, phone: form.phone, instagram: form.instagram,
       professional_name: form.professional_name, crefito: form.crefito,
-      professional_photo_url: form.professional_photo_url, specialties: form.specialties,
+      professional_photo_url: form.professional_photo_url,
+      logo_url: form.logo_url,
+      specialties: form.specialties,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
-    toast.success("Salvo");
+    toast.success("Configurações salvas ✓");
     qc.invalidateQueries({ queryKey: ["clinic_settings"] });
   }
 
-  async function upload(file: File) {
+  async function uploadAsset(file: File, kind: "photo" | "logo") {
+    if (kind === "photo" && file.size > 4 * 1024 * 1024) {
+      return toast.error("Arquivo grande demais (máx 4 MB).");
+    }
+    if (kind === "logo" && file.size > 2 * 1024 * 1024) {
+      return toast.error("Arquivo grande demais (máx 2 MB).");
+    }
     setUploading(true);
-    const path = `professional/${Date.now()}-${file.name.replace(/\s/g, "_")}`;
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `branding/${kind === "logo" ? "logo" : "lenilson"}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("clinic-assets").upload(path, file, { upsert: true });
     if (error) { setUploading(false); return toast.error(error.message); }
-    const { data: signed } = await supabase.storage.from("clinic-assets").createSignedUrl(path, 60 * 60 * 24 * 365);
-    setForm({ ...form, professional_photo_url: signed?.signedUrl });
+    const { data: signed } = await supabase.storage
+      .from("clinic-assets")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 anos
+    setForm({
+      ...form,
+      [kind === "logo" ? "logo_url" : "professional_photo_url"]: signed?.signedUrl,
+    });
     setUploading(false);
-    toast.success("Foto enviada");
+    toast.success(kind === "logo" ? "Logo enviado ✓" : "Foto enviada ✓");
   }
+
+  async function upload(file: File) { return uploadAsset(file, "photo"); }
 
   function addSpec() {
     if (!newSpec.trim()) return;
@@ -113,6 +129,17 @@ function ClinicTab() {
         <div><Label>Nome do profissional</Label><Input value={form.professional_name ?? ""} onChange={(e) => setForm({ ...form, professional_name: e.target.value })} /></div>
         <div><Label>CREFITO</Label><Input value={form.crefito ?? ""} onChange={(e) => setForm({ ...form, crefito: e.target.value })} /></div>
         <div>
+          <Label>Logo da clínica</Label>
+          <div className="flex items-center gap-3 mt-1">
+            {form.logo_url && <img src={form.logo_url} alt="" className="h-12 w-12 rounded-full object-cover bg-muted" />}
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer hover:bg-muted text-sm">
+              <Upload className="h-4 w-4" />{uploading ? "Enviando..." : "Enviar logo"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAsset(e.target.files[0], "logo")} />
+            </label>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">PNG/JPG até 2 MB. Aparece na sidebar e no cabeçalho dos PDFs.</p>
+        </div>
+        <div>
           <Label>Foto do profissional</Label>
           <div className="flex items-center gap-3 mt-1">
             {form.professional_photo_url && <img src={form.professional_photo_url} alt="" className="h-12 w-12 rounded-full object-cover" />}
@@ -121,6 +148,7 @@ function ClinicTab() {
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
             </label>
           </div>
+          <p className="text-[10px] text-muted-foreground mt-1">PNG/JPG até 4 MB. Aparece no card de boas-vindas do dashboard.</p>
         </div>
       </div>
       <div>
@@ -191,7 +219,10 @@ function UsersTab() {
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setCreated(null); }}>
           <DialogTrigger asChild><Button className="gradient-brand text-white"><Plus className="h-4 w-4 mr-1" />Novo usuário</Button></DialogTrigger>
           <DialogContent className="max-w-[95vw] sm:max-w-md">
-            <DialogHeader><DialogTitle>{created ? "Usuário criado" : "Criar usuário"}</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{created ? "Usuário criado" : "Criar usuário"}</DialogTitle>
+              <DialogDescription className="sr-only">{created ? "Credenciais geradas para acesso." : "Crie um novo usuário no sistema."}</DialogDescription>
+            </DialogHeader>
             {created ? (
               <div className="space-y-3">
                 <div className="bg-success/10 border border-success/30 rounded-xl p-4 text-sm space-y-1">
@@ -257,10 +288,11 @@ function ThemeTab() {
   });
   async function pick(key: string) {
     applyTheme(key);
+    if (typeof localStorage !== "undefined") localStorage.setItem("fisio-theme", key);
     if (clinic?.id) {
       await supabase.from("clinic_settings").update({ theme: key }).eq("id", clinic.id);
       qc.invalidateQueries({ queryKey: ["clinic_settings"] });
-      toast.success("Tema aplicado");
+      toast.success("Tema aplicado ✓");
     }
   }
   const current = clinic?.theme ?? "default";

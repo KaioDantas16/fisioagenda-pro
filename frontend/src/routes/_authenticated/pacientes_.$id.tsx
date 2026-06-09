@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 // useServerFn replaced by direct async call (Supabase-only architecture)
@@ -20,6 +20,7 @@ import { downloadProntuarioPDF, downloadFrequenciaPDF } from "@/lib/pdf";
 import { format } from "date-fns";
 import { createPatientPortalAccess } from "@/lib/patient-portal.functions";
 import { COMMON_CID10 } from "@/lib/clinical-constants";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AnamneseTab } from "@/components/clinical/AnamneseTab";
 import { FunctionalTab } from "@/components/clinical/FunctionalTab";
 import { PainMapTab } from "@/components/clinical/PainMapTab";
@@ -29,6 +30,7 @@ import { PerimetryTab } from "@/components/clinical/PerimetryTab";
 import { EvolutionTab } from "@/components/clinical/EvolutionTab";
 import { AttachmentsTab } from "@/components/clinical/AttachmentsTab";
 import { NeuroTab } from "@/components/clinical/NeuroTab";
+import { PackagesTab } from "@/components/clinical/PackagesTab";
 
 export const Route = createFileRoute("/_authenticated/pacientes_/$id")({
   head: () => ({ meta: [{ title: "Paciente — FisioAgenda Pro" }] }),
@@ -151,6 +153,7 @@ function PatientProfile() {
           <TabsTrigger value="sessions">Sessões</TabsTrigger>
           <TabsTrigger value="vitals">Sinais Vitais</TabsTrigger>
           <TabsTrigger value="goals">Metas</TabsTrigger>
+          <TabsTrigger value="packages">Pacotes</TabsTrigger>
           <TabsTrigger value="attachments">Anexos</TabsTrigger>
         </TabsList>
         <TabsContent value="records" className="mt-4"><RecordsTab patientId={id} records={records} onChange={invAll} /></TabsContent>
@@ -168,6 +171,7 @@ function PatientProfile() {
         </TabsContent>
         <TabsContent value="vitals" className="mt-4"><VitalsTab patientId={id} vitals={vitals} onChange={invAll} /></TabsContent>
         <TabsContent value="goals" className="mt-4"><GoalsTab patientId={id} goals={goals} onChange={invAll} /></TabsContent>
+        <TabsContent value="packages" className="mt-4"><PackagesTab patientId={id} /></TabsContent>
         <TabsContent value="attachments" className="mt-4"><AttachmentsTab patientId={id} /></TabsContent>
       </Tabs>
     </div>
@@ -197,9 +201,9 @@ function RecordsTab({ patientId, records, onChange }: any) {
     onChange();
   }
   async function remove(rid: string) {
-    if (!confirm("Excluir este prontuário?")) return;
     const { error } = await supabase.from("records").delete().eq("id", rid);
     if (error) return toast.error(error.message);
+    toast.success("Prontuário excluído");
     onChange();
   }
   return (
@@ -276,7 +280,13 @@ function RecordsTab({ patientId, records, onChange }: any) {
               {typeof r.pain_scale === "number" && (
                 <span className={`text-xs px-2 py-0.5 rounded text-white font-bold ${painColor(r.pain_scale)}`}>EVA {r.pain_scale}/10</span>
               )}
-              <Button variant="ghost" size="icon" onClick={() => remove(r.id)} className="text-destructive h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>
+              <ConfirmDialog
+                trigger={<Button variant="ghost" size="icon" className="text-destructive h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>}
+                title="Excluir prontuário?"
+                description="Esta ação não pode ser desfeita. O prontuário SOAP será removido permanentemente."
+                confirmLabel="Excluir permanentemente"
+                destructive
+                onConfirm={() => remove(r.id)} />
             </div>
           </div>
           {(r.cid10 || r.pain_location_text) && (
@@ -326,8 +336,9 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
     onChange();
   }
   async function remove(sid: string) {
-    if (!confirm("Excluir sessão?")) return;
-    await supabase.from("sessions").delete().eq("id", sid);
+    const { error } = await supabase.from("sessions").delete().eq("id", sid);
+    if (error) return toast.error(error.message);
+    toast.success("Sessão excluída");
     onChange();
   }
   async function exportReceipt(session: any) {
@@ -388,7 +399,13 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
             <p className="text-xs text-muted-foreground truncate">{s.procedure ?? "—"} · {s.status}{s.price ? ` · R$ ${Number(s.price).toFixed(2)}` : ""}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => exportReceipt(s)}><FileDown className="h-3.5 w-3.5 mr-1" />Recibo</Button>
-          <Button variant="ghost" size="icon" onClick={() => remove(s.id)} className="text-destructive h-8 w-8"><Trash2 className="h-3.5 w-3.5" /></Button>
+          <ConfirmDialog
+            trigger={<Button variant="ghost" size="icon" className="text-destructive h-8 w-8"><Trash2 className="h-3.5 w-3.5" /></Button>}
+            title="Excluir sessão?"
+            description="Esta ação não pode ser desfeita. A sessão será removida permanentemente do histórico."
+            confirmLabel="Excluir permanentemente"
+            destructive
+            onConfirm={() => remove(s.id)} />
         </div>
       ))}
     </div>
@@ -415,8 +432,9 @@ function VitalsTab({ patientId, vitals, onChange }: any) {
     onChange();
   }
   async function remove(vid: string) {
-    if (!confirm("Excluir?")) return;
-    await supabase.from("vital_signs").delete().eq("id", vid);
+    const { error } = await supabase.from("vital_signs").delete().eq("id", vid);
+    if (error) return toast.error(error.message);
+    toast.success("Registro excluído");
     onChange();
   }
   return (
@@ -467,7 +485,13 @@ function VitalsTab({ patientId, vitals, onChange }: any) {
                   <td className="p-3">{v.weight ?? "—"}</td>
                   <td className="p-3">{v.height ?? "—"}</td>
                   <td className="p-3 font-bold text-primary">{v.bmi ?? "—"}</td>
-                  <td className="p-2"><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => remove(v.id)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
+                  <td className="p-2"><ConfirmDialog
+                    trigger={<Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>}
+                    title="Excluir registro?"
+                    description="Esta ação não pode ser desfeita. O registro de sinais vitais será removido permanentemente."
+                    confirmLabel="Excluir permanentemente"
+                    destructive
+                    onConfirm={() => remove(v.id)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -499,8 +523,9 @@ function GoalsTab({ patientId, goals, onChange }: any) {
     onChange();
   }
   async function remove(gid: string) {
-    if (!confirm("Excluir meta?")) return;
-    await supabase.from("goals").delete().eq("id", gid);
+    const { error } = await supabase.from("goals").delete().eq("id", gid);
+    if (error) return toast.error(error.message);
+    toast.success("Meta excluída");
     onChange();
   }
   return (
@@ -529,7 +554,13 @@ function GoalsTab({ patientId, goals, onChange }: any) {
               {g.description && <p className="text-xs text-muted-foreground mt-1">{g.description}</p>}
               {g.target_date && <p className="text-xs text-muted-foreground mt-1">Prazo: {format(new Date(g.target_date), "dd/MM/yyyy")}</p>}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => remove(g.id)} className="text-destructive h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>
+            <ConfirmDialog
+              trigger={<Button variant="ghost" size="icon" className="text-destructive h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>}
+              title="Excluir meta?"
+              description="Esta ação não pode ser desfeita. A meta terapêutica será removida permanentemente."
+              confirmLabel="Excluir permanentemente"
+              destructive
+              onConfirm={() => remove(g.id)} />
           </div>
           <div className="mt-3">
             <div className="flex items-center gap-2 mb-1">
@@ -624,6 +655,8 @@ function PortalAccessControl({ patient, onChange }: { patient: any; onChange: ()
 }
 
 function DeletePatientButton({ patientId, patientName }: { patientId: string; patientName: string }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   async function remove() {
@@ -631,8 +664,9 @@ function DeletePatientButton({ patientId, patientName }: { patientId: string; pa
     const { error } = await (supabase as any).rpc("delete_patient_cascade", { _patient_id: patientId });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Paciente excluído");
-    window.location.href = "/pacientes";
+    toast.success(`Paciente "${patientName}" excluído ✓`);
+    qc.invalidateQueries({ queryKey: ["patients"] });
+    navigate({ to: "/pacientes" });
   }
   return (
     <AlertDialog>
