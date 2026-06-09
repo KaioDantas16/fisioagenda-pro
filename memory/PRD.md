@@ -37,13 +37,18 @@ Reconstruir o **FisioAgenda Pro** (sistema de gestão clínica para fisioterapia
 ✅ **Login funcional** — testado com `kaiohhenrique21@gmail.com` → redirecionou para `/dashboard`
 ✅ **Dashboard real** — exibindo 4 pacientes ativos do banco + badge "Suporte Técnico" para super_admin
 ✅ **Lista de pacientes** — exibindo os 4 pacientes reais com classificações coloridas
-✅ **Agenda semanal** — navegação por semana funcionando
+✅ **Agenda semanal** — navegação por semana funcionando (botões com aria-label "Anterior"/"Próxima")
 ✅ **Prontuário novo** — formulário SOAP + EVA + busca de paciente renderizando
+✅ **Detalhe do paciente** — 13 abas clínicas (SOAP, Anamnese, Funcional, Mapa de dor, ADM, Testes, Neurológico, Perimetria, Evolução, Sessões, Sinais Vitais, Metas, Anexos) renderizando com dados reais
 ✅ **Logo e foto reais** do Lenilson e da clínica integrados (`/public/`)
 ✅ **Temas, CSS variables, gradient-brand** funcionando
+✅ **MessageModal** com título dinâmico "Contato — {nome}" e WhatsApp/Email
+✅ **Navegação por clique no card de paciente** (TanStack onClick navigate)
+✅ **Rota de detalhe** renomeada para `pacientes_.$id.tsx` (TanStack non-nested syntax)
 ✅ **Removidas dependências do runtime Lovable** (server functions convertidas para Supabase client direto, lovable error reporting é safe no-op)
 ✅ **Vite configurado** para rodar em `0.0.0.0:3000` com `allowedHosts: true` e HMR via WSS
 ✅ **Node 22** instalado (requisito do `@tanstack/react-start`)
+✅ **Testing agent: 100% de sucesso no frontend** (iteration_2.json) — todos os 3 bugs do iteration_1 corrigidos
 
 ## Decisões técnicas tomadas
 - `login_attempts` agora é inserido via client (best-effort, RLS controla quem pode)
