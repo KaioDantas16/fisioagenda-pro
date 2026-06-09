@@ -18,13 +18,26 @@ BEGIN
   END IF;
 END $$;
 
--- 3) Limpar duplicatas de forma segura antes de criar restrição UNIQUE
-DELETE FROM public.clinic_settings a
-USING public.clinic_settings b
-WHERE a.id > b.id AND (
-  a.therapist_id = b.therapist_id 
-  OR (a.therapist_id IS NULL AND b.therapist_id IS NULL)
-);
+-- 3) Verificar duplicados por therapist_id e abortar se houver
+DO $$
+DECLARE
+  v_dup_count integer;
+  v_null_count integer;
+BEGIN
+  -- Conta duplicados que possuem therapist_id
+  SELECT count(*) - count(distinct therapist_id) INTO v_dup_count
+  FROM public.clinic_settings
+  WHERE therapist_id IS NOT NULL;
+  
+  -- Conta quantos registros possuem therapist_id nulo
+  SELECT count(*) INTO v_null_count
+  FROM public.clinic_settings
+  WHERE therapist_id IS NULL;
+
+  IF v_dup_count > 0 OR v_null_count > 1 THEN
+    RAISE EXCEPTION 'Existem configuracoes duplicadas na tabela clinic_settings. Por favor, resolva manualmente no banco de dados para evitar perda de dados reais. Seeding e restricoes cancelados.';
+  END IF;
+END $$;
 
 -- 4) Criar UNIQUE constraint em therapist_id de forma segura
 DO $$
@@ -67,7 +80,12 @@ CREATE POLICY "Manage clinic_settings" ON public.clinic_settings
     )
   );
 
--- 6) Ajustar políticas de Storage para o bucket clinic-assets (branding/ pasta)
+-- 6) Criar o bucket clinic-assets se ele ainda não existir, de forma privada (signed URLs no frontend)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('clinic-assets', 'clinic-assets', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- 7) Ajustar políticas de Storage para o bucket clinic-assets (branding/ pasta)
 DROP POLICY IF EXISTS "Authenticated read clinic-assets" ON storage.objects;
 DROP POLICY IF EXISTS "Super admin upload clinic-assets" ON storage.objects;
 DROP POLICY IF EXISTS "Super admin update clinic-assets" ON storage.objects;
