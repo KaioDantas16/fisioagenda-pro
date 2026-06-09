@@ -1,24 +1,11 @@
 -- Migration: 202606090003_clinic_settings_therapist_and_storage
 -- Melhora a persistência e segurança das configurações da clínica e arquivos de branding.
 
--- 1) Adicionar coluna therapist_id
+-- 1) Adicionar coluna therapist_id caso ainda não exista
 ALTER TABLE public.clinic_settings
   ADD COLUMN IF NOT EXISTS therapist_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
 
--- 2) Popular therapist_id para o Lenilson caso esteja nulo
-DO $$
-DECLARE
-  v_lenilson_id uuid;
-BEGIN
-  SELECT id INTO v_lenilson_id FROM auth.users WHERE email = 'jesuslenilson36@gmail.com';
-  IF v_lenilson_id IS NOT NULL THEN
-    UPDATE public.clinic_settings
-    SET therapist_id = v_lenilson_id
-    WHERE therapist_id IS NULL;
-  END IF;
-END $$;
-
--- 3) Verificar duplicados por therapist_id e abortar se houver
+-- 2) Diagnóstico/validação de duplicados ANTES de qualquer UPDATE
 DO $$
 DECLARE
   v_dup_count integer;
@@ -34,8 +21,27 @@ BEGIN
   FROM public.clinic_settings
   WHERE therapist_id IS NULL;
 
-  IF v_dup_count > 0 OR v_null_count > 1 THEN
-    RAISE EXCEPTION 'Existem configuracoes duplicadas na tabela clinic_settings. Por favor, resolva manualmente no banco de dados para evitar perda de dados reais. Seeding e restricoes cancelados.';
+  -- Se houver mais de 1 linha nula, abortar para revisão manual
+  IF v_null_count > 1 THEN
+    RAISE EXCEPTION 'Existem % registros com therapist_id nulo na tabela clinic_settings. Por favor, resolva manualmente no banco para evitar conflitos de dados.', v_null_count;
+  END IF;
+
+  -- Se houver duplicatas por therapist_id, abortar para revisão manual
+  IF v_dup_count > 0 THEN
+    RAISE EXCEPTION 'Existem configuracoes duplicadas por therapist_id na tabela clinic_settings. Resolva manualmente para evitar conflitos.';
+  END IF;
+END $$;
+
+-- 3) Popular therapist_id para o Lenilson caso esteja nulo (agora que sabemos que há no máximo 1 linha com therapist_id nulo)
+DO $$
+DECLARE
+  v_lenilson_id uuid;
+BEGIN
+  SELECT id INTO v_lenilson_id FROM auth.users WHERE email = 'jesuslenilson36@gmail.com';
+  IF v_lenilson_id IS NOT NULL THEN
+    UPDATE public.clinic_settings
+    SET therapist_id = v_lenilson_id
+    WHERE therapist_id IS NULL;
   END IF;
 END $$;
 
