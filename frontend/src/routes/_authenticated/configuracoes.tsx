@@ -63,25 +63,56 @@ function Settings() {
 
 function ClinicTab() {
   const qc = useQueryClient();
-  const { data: clinic } = useQuery({
+  const { data: clinic, isSuccess } = useQuery({
     queryKey: ["clinic_settings"],
     queryFn: async () => (await supabase.from("clinic_settings").select("*").maybeSingle()).data,
   });
   const [form, setForm] = useState<any>(null);
   const [newSpec, setNewSpec] = useState("");
   const [uploading, setUploading] = useState(false);
-  useEffect(() => { if (clinic && !form) setForm(clinic); }, [clinic, form]);
+
+  useEffect(() => {
+    if (isSuccess && !form) {
+      setForm(clinic || {
+        name: "Centro Especializado Equilíbrio e Movimento",
+        address: "Caldas Novas, GO",
+        phone: "(64) 9 0000-0000",
+        instagram: "@lenilson_gouveia",
+        professional_name: "Lenilson Gouveia de Jesus",
+        crefito: "CREFITO-9",
+        specialties: ["Fisioterapia ortopédica", "Fisioterapia neurológica", "RPG", "Pilates clínico"],
+        theme: "default"
+      });
+    }
+  }, [clinic, isSuccess, form]);
+
   if (!form) return <p className="text-muted-foreground text-sm">Carregando...</p>;
 
   async function save() {
-    const { error } = await supabase.from("clinic_settings").update({
-      name: form.name, address: form.address, phone: form.phone, instagram: form.instagram,
-      professional_name: form.professional_name, crefito: form.crefito,
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return toast.error("Usuário não autenticado");
+    const therapistId = form.therapist_id || userData.user.id;
+
+    const { data: savedData, error } = await supabase.from("clinic_settings").upsert({
+      id: form.id || undefined,
+      therapist_id: therapistId,
+      name: form.name,
+      address: form.address,
+      phone: form.phone,
+      instagram: form.instagram,
+      professional_name: form.professional_name,
+      crefito: form.crefito,
       professional_photo_url: form.professional_photo_url,
       logo_url: form.logo_url,
       specialties: form.specialties,
-    }).eq("id", form.id);
+      theme: form.theme || "default",
+    }, {
+      onConflict: "therapist_id"
+    }).select().maybeSingle();
+
     if (error) return toast.error(error.message);
+    if (savedData) setForm(savedData);
+    
     toast.success("Configurações salvas ✓");
     qc.invalidateQueries({ queryKey: ["clinic_settings"] });
   }
@@ -93,14 +124,26 @@ function ClinicTab() {
     if (kind === "logo" && file.size > 2 * 1024 * 1024) {
       return toast.error("Arquivo grande demais (máx 2 MB).");
     }
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return toast.error("Usuário não autenticado");
+    const therapistId = form.therapist_id || userData.user.id;
+
     setUploading(true);
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `branding/${kind === "logo" ? "logo" : "lenilson"}-${Date.now()}.${ext}`;
+    const path = `branding/${therapistId}/${kind === "logo" ? "logo" : "photo"}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("clinic-assets").upload(path, file, { upsert: true });
-    if (error) { setUploading(false); return toast.error(error.message); }
+    
+    if (error) {
+      setUploading(false);
+      console.error("Storage upload error:", error);
+      return toast.error("Não foi possível enviar a imagem. Verifique o bucket/políticas do Supabase Storage.");
+    }
+
     const { data: signed } = await supabase.storage
       .from("clinic-assets")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 anos
+      
     setForm({
       ...form,
       [kind === "logo" ? "logo_url" : "professional_photo_url"]: signed?.signedUrl,
@@ -291,10 +334,28 @@ function ThemeTab() {
   async function pick(key: string) {
     applyTheme(key);
     if (typeof localStorage !== "undefined") localStorage.setItem("fisio-theme", key);
-    if (clinic?.id) {
-      await supabase.from("clinic_settings").update({ theme: key }).eq("id", clinic.id);
-      qc.invalidateQueries({ queryKey: ["clinic_settings"] });
-      toast.success("Tema aplicado ✓");
+    
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      const therapistId = clinic?.therapist_id || userData.user.id;
+      const { error } = await supabase.from("clinic_settings").upsert({
+        id: clinic?.id || undefined,
+        therapist_id: therapistId,
+        theme: key,
+        name: clinic?.name || "Centro Especializado Equilíbrio e Movimento",
+        professional_name: clinic?.professional_name || "Lenilson Gouveia de Jesus",
+        crefito: clinic?.crefito || "CREFITO-9",
+        specialties: clinic?.specialties || ["Fisioterapia ortopédica", "Fisioterapia neurológica", "RPG", "Pilates clínico"],
+      }, {
+        onConflict: "therapist_id"
+      });
+      
+      if (!error) {
+        qc.invalidateQueries({ queryKey: ["clinic_settings"] });
+        toast.success("Tema aplicado ✓");
+      } else {
+        toast.error(error.message);
+      }
     }
   }
   const current = clinic?.theme ?? "default";
