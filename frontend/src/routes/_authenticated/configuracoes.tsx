@@ -14,7 +14,7 @@ import { THEMES, applyTheme } from "@/lib/brand";
 import { waLink } from "@/lib/whatsapp";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { downloadMonthlyReportPDF } from "@/lib/pdf";
+import { downloadFinancialPDF, downloadMonthlyReportPDF } from "@/lib/pdf";
 import { Plus, Trash2, MessageCircle, FileDown, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -347,7 +347,7 @@ function LogsTab() {
 }
 
 function ReportsTab() {
-  async function genMonthly() {
+  async function loadCurrentMonthData() {
     const now = new Date();
     const ms = startOfMonth(now), me = endOfMonth(now);
     const [{ data: patients }, { data: appts }] = await Promise.all([
@@ -361,17 +361,55 @@ function ReportsTab() {
     const total = (appts ?? []).length;
     const attended = (appts ?? []).filter((a: any) => a.status === "realizado").length;
     const revenue = (appts ?? []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
+    return { now, patients: list, appointments: appts ?? [], total, attended, revenue };
+  }
+
+  async function genMonthly() {
+    const { now, patients, total, attended, revenue } = await loadCurrentMonthData();
     downloadMonthlyReportPDF({
       monthLabel: format(now, "MM-yyyy"),
-      patients: list,
-      totals: { totalPatients: list.length, totalSessions: total, attendance: total ? (attended / total) * 100 : 0, revenue },
+      patients,
+      totals: { totalPatients: patients.length, totalSessions: total, attendance: total ? (attended / total) * 100 : 0, revenue },
+    });
+  }
+
+  async function genFinancial() {
+    const { now, patients, appointments, revenue } = await loadCurrentMonthData();
+    const patientNames = new Map(patients.map((p: any) => [p.id, p.full_name]));
+    const methodTotals = new Map<string, { method: string; total: number; count: number }>();
+    const patientTotals = new Map<string, { full_name: string; total: number; sessions: number }>();
+
+    appointments.forEach((a: any) => {
+      const amount = Number(a.price) || 0;
+      const method = a.payment_method || "Não informado";
+      const currentMethod = methodTotals.get(method) ?? { method, total: 0, count: 0 };
+      currentMethod.total += amount;
+      currentMethod.count += 1;
+      methodTotals.set(method, currentMethod);
+
+      const patientId = a.patient_id || "sem-paciente";
+      const fullName = patientNames.get(a.patient_id) ?? "Paciente não informado";
+      const currentPatient = patientTotals.get(patientId) ?? { full_name: fullName, total: 0, sessions: 0 };
+      currentPatient.total += amount;
+      currentPatient.sessions += 1;
+      patientTotals.set(patientId, currentPatient);
+    });
+
+    downloadFinancialPDF({
+      periodLabel: format(now, "MM-yyyy"),
+      byMethod: [...methodTotals.values()].sort((a, b) => b.total - a.total),
+      topPatients: [...patientTotals.values()].sort((a, b) => b.total - a.total).slice(0, 10),
+      grandTotal: revenue,
     });
   }
   return (
     <div className="bg-card rounded-2xl p-6 shadow-card space-y-3">
       <h3 className="text-lg">Relatórios</h3>
       <p className="text-sm text-muted-foreground">Gere relatórios mensais consolidados em PDF.</p>
-      <Button onClick={genMonthly} className="gradient-brand text-white"><FileDown className="h-4 w-4 mr-1" />Relatório do mês atual</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={genMonthly} className="gradient-brand text-white"><FileDown className="h-4 w-4 mr-1" />Relatório do mês atual</Button>
+        <Button onClick={genFinancial} variant="outline"><FileDown className="h-4 w-4 mr-1" />Financeiro do mês atual</Button>
+      </div>
     </div>
   );
 }
