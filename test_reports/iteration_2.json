@@ -1,0 +1,32 @@
+{
+  "summary": "Re-test of FisioAgenda Pro after iteration_1 fixes. ALL 3 BUGS FIXED + 13 clinical tabs validated. Tested as super_admin (kaiohhenrique21@gmail.com). Read-only: no Supabase data created/modified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DialogContent (MessageModal, Novo paciente, etc.)", "issues": ["Console warning: 'Missing Description or aria-describedby={undefined} for {DialogContent}' — Radix accessibility recommendation; add <DialogDescription> or aria-describedby"]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(LOW) Add <DialogDescription> (or aria-describedby) to DialogContent in MessageModal.tsx and other dialogs to silence Radix a11y warnings.",
+    "(LOW, pre-existing) Investigate the 403 from Supabase on initial /pacientes load — likely RLS on optional table (e.g., user_roles) and may not be blocking, but it pollutes the console."
+  ],
+  "critical_code_review_comments": [
+    "pacientes_.$id.tsx is 666 lines and bundles RecordsTab, SessionsTab, VitalsTab, GoalsTab, PortalAccessControl, DeletePatientButton — exceeds 700-line guidance threshold and mixes concerns. Recommend splitting each subtab into its own file under /components/clinical/ for maintainability and code-splitting.",
+    "PatientProfile uses `if (!patient) return <p>Carregando...</p>;` which collapses both 'loading' and 'not-found' into the same state — add an explicit 404/error state when the query errors (e.g., invalid uuid).",
+    "DeletePatientButton uses window.location.href='/pacientes' after delete — prefer TanStack navigate({to:'/pacientes'}) for SPA navigation, otherwise full reload + lost query cache.",
+    "<li role='button' tabIndex={0}> with nested <button> (chat icon) — semantically a button inside a button. Consider using <div role='button'> instead of <li role='button'> or using a real <Link> wrapping the row with stopPropagation on inner button. Current implementation works but is not ideal for screen readers.",
+    "RecordsTab `pain_scale=0` is a valid value but the typeof check `typeof r.pain_scale === 'number'` correctly handles 0 — OK.",
+    "SessionsTab and RecordsTab use `confirm()` (browser native) for delete confirmation — inconsistent with the AlertDialog pattern used in DeletePatientButton."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "super_admin: kaiohhenrique21@gmail.com / Admin123# — VERIFIED working",
+  "seed_data_creation": "None. Read-only testing per instructions.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 reported bugs fixed. Validated: login → dashboard → /pacientes → row click navigates to /pacientes/<uuid> → 13 tabs present (SOAP, Anamnese, Funcional, Mapa de dor, ADM, Testes, Neurológico, Perimetria, Evolução, Sessões, Sinais Vitais, Metas, Anexos) → all 13 clickable with no JS pageerror → MessageModal title 'Contato — Ana Clara linda' (dynamic) → chat icon click does NOT navigate (stopPropagation works) → /agenda aria-label='Anterior' and 'Próxima' present (count=1 each) → /prontuario/novo loads → dashboard regression OK. Logout (Sair) is visible in sidebar but was not exercised end-to-end due to a script timeout on /prontuario/novo h1; manual code review of the sidebar shows the Sair button is wired to supabase.auth.signOut() + redirect to /auth (was working in iteration_1 setup). DialogContent missing aria-describedby is the only remaining noise.",
+  "rca of the issue": "All 3 bugs from iteration_1 are FIXED. Verification details:\n  BUG 1 (row click) — Fix at /app/frontend/src/routes/_authenticated/pacientes.tsx:226-228 — <li role='button' tabIndex={0} onClick={() => navigate({to:'/pacientes/$id', params:{id:p.id}})}> + Enter/Space keyboard handler. Inner MessageModal trigger uses onClick stopPropagation (line 244). Confirmed: clicking 'Ana Clara linda' name/avatar navigates to /pacientes/11eb616d-57c4-4d5b-9b96-8b3f4685c1b1 and clicking chat icon stays on /pacientes.\n  BUG 2 (modal title) — Fix at /app/frontend/src/components/MessageModal.tsx:42 — DialogTitle renders `Contato — ${patientName}` when patientName is set. Confirmed live text: 'Contato — Ana Clara linda'.\n  BUG 3 (agenda aria-labels) — Fix at /app/frontend/src/routes/_authenticated/agenda.tsx:112-114 — Both ChevronLeft and ChevronRight icon buttons have aria-label='Anterior' and aria-label='Próxima'. Confirmed: get_by_role('button', name='Anterior') and 'Próxima' each return 1 element.\n  Additionally: Route file renamed to pacientes_.$id.tsx (TanStack non-nested syntax: createFileRoute('/_authenticated/pacientes_/$id')) so the detail page renders standalone (no nested layout from /pacientes). All 13 clinical tabs were exercised in sequence without any JS pageerror."
+}

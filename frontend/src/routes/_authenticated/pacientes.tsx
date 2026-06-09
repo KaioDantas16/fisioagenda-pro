@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ const emptyForm = {
 
 function Pacientes() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
@@ -222,7 +223,11 @@ function Pacientes() {
             {filtered.map((p: any) => {
               const cls = CLASSIFICATIONS[p.classification] ?? CLASSIFICATIONS.estavel;
               return (
-                <li key={p.id} className="p-3 sm:p-4 flex items-center gap-3 hover:bg-muted/40">
+                <li key={p.id} role="button" tabIndex={0}
+                  onClick={() => navigate({ to: "/pacientes/$id", params: { id: p.id } })}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate({ to: "/pacientes/$id", params: { id: p.id } }); } }}
+                  aria-label={`Abrir perfil de ${p.full_name}`}
+                  className="cursor-pointer p-3 sm:p-4 flex items-center gap-3 hover:bg-muted/40 focus:bg-muted/40 outline-none transition-colors">
                   <div className="h-10 w-10 rounded-full gradient-brand text-white flex items-center justify-center font-display font-bold shrink-0">
                     {p.full_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
@@ -236,15 +241,16 @@ function Pacientes() {
                     </div>
                   </div>
                   {(p.phone || p.email) && (
-                    <MessageModal patientName={p.full_name} phone={p.phone} email={p.email}
-                      trigger={<button title="Mensagem" className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-[#25D366]/15 text-[#1d9d4d] hover:bg-[#25D366]/25">
-                        <MessageCircle className="h-4 w-4" />
-                      </button>} />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <MessageModal patientName={p.full_name} phone={p.phone} email={p.email}
+                        trigger={<button title="Mensagem" className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-[#25D366]/15 text-[#1d9d4d] hover:bg-[#25D366]/25">
+                          <MessageCircle className="h-4 w-4" />
+                        </button>} />
+                    </div>
                   )}
-                  <Link to="/pacientes/$id" params={{ id: p.id }}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-full hover:bg-muted">
+                  <span className="h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground pointer-events-none">
                     <ChevronRight className="h-4 w-4" />
-                  </Link>
+                  </span>
                 </li>
               );
             })}

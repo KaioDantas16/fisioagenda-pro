@@ -109,9 +109,9 @@ function Agenda() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => setAnchor(addDays(anchor, -7))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="outline" size="icon" aria-label="Anterior" title="Semana anterior" onClick={() => setAnchor(addDays(anchor, -7))}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="outline" onClick={() => { setAnchor(new Date()); setSelected(new Date()); }}>Hoje</Button>
-          <Button variant="outline" size="icon" onClick={() => setAnchor(addDays(anchor, 7))}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="outline" size="icon" aria-label="Próxima" title="Próxima semana" onClick={() => setAnchor(addDays(anchor, 7))}><ChevronRight className="h-4 w-4" /></Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-brand text-white" onClick={() => openNew()}><Plus className="h-4 w-4 mr-2" />Novo</Button>

@@ -39,7 +39,7 @@ export function MessageModal({ patientName, phone, email, trigger }: Props) {
         )}
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-md">
-        <DialogHeader><DialogTitle>Enviar mensagem</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{patientName ? `Contato — ${patientName}` : "Enviar mensagem"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Modelos rápidos</Label>

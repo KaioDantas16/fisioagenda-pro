@@ -30,7 +30,7 @@ import { EvolutionTab } from "@/components/clinical/EvolutionTab";
 import { AttachmentsTab } from "@/components/clinical/AttachmentsTab";
 import { NeuroTab } from "@/components/clinical/NeuroTab";
 
-export const Route = createFileRoute("/_authenticated/pacientes/$id")({
+export const Route = createFileRoute("/_authenticated/pacientes_/$id")({
   head: () => ({ meta: [{ title: "Paciente — FisioAgenda Pro" }] }),
   component: PatientProfile,
 });

@@ -18,7 +18,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedProntuarioNovoRouteImport } from './routes/_authenticated/prontuario.novo'
-import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes.$id'
+import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes_.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -69,9 +69,9 @@ const AuthenticatedProntuarioNovoRoute =
   } as any)
 const AuthenticatedPacientesIdRoute =
   AuthenticatedPacientesIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedPacientesRoute,
+    id: '/pacientes_/$id',
+    path: '/pacientes/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -80,7 +80,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/pacientes': typeof AuthenticatedPacientesRouteWithChildren
+  '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
@@ -91,7 +91,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/pacientes': typeof AuthenticatedPacientesRouteWithChildren
+  '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
@@ -104,9 +104,9 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/pacientes': typeof AuthenticatedPacientesRouteWithChildren
+  '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/portal-paciente': typeof AuthenticatedPortalPacienteRoute
-  '/_authenticated/pacientes/$id': typeof AuthenticatedPacientesIdRoute
+  '/_authenticated/pacientes_/$id': typeof AuthenticatedPacientesIdRoute
   '/_authenticated/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
 export interface FileRouteTypes {
@@ -142,7 +142,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/pacientes'
     | '/_authenticated/portal-paciente'
-    | '/_authenticated/pacientes/$id'
+    | '/_authenticated/pacientes_/$id'
     | '/_authenticated/prontuario/novo'
   fileRoutesById: FileRoutesById
 }
@@ -217,36 +217,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProntuarioNovoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/pacientes/$id': {
-      id: '/_authenticated/pacientes/$id'
-      path: '/$id'
+    '/_authenticated/pacientes_/$id': {
+      id: '/_authenticated/pacientes_/$id'
+      path: '/pacientes/$id'
       fullPath: '/pacientes/$id'
       preLoaderRoute: typeof AuthenticatedPacientesIdRouteImport
-      parentRoute: typeof AuthenticatedPacientesRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedPacientesRouteChildren {
-  AuthenticatedPacientesIdRoute: typeof AuthenticatedPacientesIdRoute
-}
-
-const AuthenticatedPacientesRouteChildren: AuthenticatedPacientesRouteChildren =
-  {
-    AuthenticatedPacientesIdRoute: AuthenticatedPacientesIdRoute,
-  }
-
-const AuthenticatedPacientesRouteWithChildren =
-  AuthenticatedPacientesRoute._addFileChildren(
-    AuthenticatedPacientesRouteChildren,
-  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRouteWithChildren
+  AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedPortalPacienteRoute: typeof AuthenticatedPortalPacienteRoute
+  AuthenticatedPacientesIdRoute: typeof AuthenticatedPacientesIdRoute
   AuthenticatedProntuarioNovoRoute: typeof AuthenticatedProntuarioNovoRoute
 }
 
@@ -254,8 +241,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedPacientesRoute: AuthenticatedPacientesRouteWithChildren,
+  AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedPortalPacienteRoute: AuthenticatedPortalPacienteRoute,
+  AuthenticatedPacientesIdRoute: AuthenticatedPacientesIdRoute,
   AuthenticatedProntuarioNovoRoute: AuthenticatedProntuarioNovoRoute,
 }
 
