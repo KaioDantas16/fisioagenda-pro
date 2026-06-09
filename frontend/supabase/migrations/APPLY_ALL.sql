@@ -54,10 +54,20 @@ CREATE INDEX IF NOT EXISTS idx_session_packages_patient ON public.session_packag
 CREATE INDEX IF NOT EXISTS idx_session_packages_therapist ON public.session_packages(therapist_id);
 
 -- ───────────────────────────────────────────────────────────────────────────
--- 2) clinic_settings.logo_url
+-- 2) clinic_settings columns
 -- ───────────────────────────────────────────────────────────────────────────
 ALTER TABLE public.clinic_settings
-  ADD COLUMN IF NOT EXISTS logo_url TEXT;
+  ADD COLUMN IF NOT EXISTS name TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS instagram TEXT,
+  ADD COLUMN IF NOT EXISTS professional_name TEXT,
+  ADD COLUMN IF NOT EXISTS crefito TEXT,
+  ADD COLUMN IF NOT EXISTS professional_photo_url TEXT,
+  ADD COLUMN IF NOT EXISTS logo_url TEXT,
+  ADD COLUMN IF NOT EXISTS specialties JSONB,
+  ADD COLUMN IF NOT EXISTS theme TEXT;
+
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- 3) appointments.reminder_sent — para lembretes WhatsApp (iter 4)

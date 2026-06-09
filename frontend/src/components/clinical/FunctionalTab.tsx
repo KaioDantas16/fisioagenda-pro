@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
 
 const FIELDS = [
   { key: "posture", label: "Postura" },

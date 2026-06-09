@@ -450,13 +450,33 @@ function IntegrationsTab() {
       return toast.error("Telefone inválido. Use DDD + número (10 ou 11 dígitos).");
     }
     setTesting(true);
-    const { data, error } = await supabase.functions.invoke("send-reminder", {
-      body: { test_phone: testPhone.replace(/\D/g, "") },
-    });
-    setTesting(false);
-    if (error) return toast.error(error.message);
-    if (data?.ok) toast.success("Mensagem de teste enviada ✓");
-    else toast.error("Falha ao enviar. Confira os Secrets EVOLUTION_* nas Edge Functions.");
+    try {
+      const { data, error } = await supabase.functions.invoke("send-reminder", {
+        body: { test_phone: testPhone.replace(/\D/g, "") },
+      });
+      setTesting(false);
+      if (error) {
+        const msg = error.message || "Erro desconhecido";
+        if (msg.includes("Failed to send a request") || msg.includes("Edge Function") || msg.includes("fetch")) {
+          return toast.error(
+            "Integração WhatsApp não configurada ou Edge Function 'send-reminder' não implantada. " +
+            "Realize o deploy da função no Supabase e configure as credenciais EVOLUTION_* nos Secrets."
+          );
+        }
+        return toast.error(msg);
+      }
+      if (data?.ok) {
+        toast.success("Mensagem de teste enviada ✓");
+      } else {
+        toast.error("Falha ao enviar. Confira os Secrets EVOLUTION_* nas Edge Functions.");
+      }
+    } catch (e: any) {
+      setTesting(false);
+      toast.error(
+        "A Edge Function 'send-reminder' não está respondendo. " +
+        "Certifique-se de configurar as credenciais EVOLUTION_* nos Secrets do Supabase."
+      );
+    }
   }
 
   const waOn = !!(settings as any)?.whatsapp_reminders_enabled;

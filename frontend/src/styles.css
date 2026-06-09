@@ -82,7 +82,7 @@
   --sidebar-border: oklch(0.90 0.03 235);
   --sidebar-ring: oklch(0.54 0.13 248);
 
-  --gradient-brand: linear-gradient(135deg, #1A6FB5 0%, #4CAF50 100%);
+  --gradient-brand: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
   --shadow-card: 0 4px 20px rgba(26,111,181,0.08);
   --shadow-lg: 0 10px 40px rgba(26,111,181,0.12);
 }
