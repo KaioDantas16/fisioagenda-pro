@@ -9,73 +9,104 @@ Reconstruir o **FisioAgenda Pro** (sistema de gestão clínica para fisioterapia
 
 ## Stack / Architecture
 - **Frontend**: React 19 + Vite 7 + TanStack Start (SSR) + TanStack Router (file-based) + TanStack Query v5 + Tailwind CSS v4 + Radix UI / shadcn + Sonner + jsPDF + Recharts + date-fns (pt-BR).
-- **Backend**: 100% Supabase em produção (Auth + Postgres com RLS + Storage). Sem FastAPI customizado.
+- **Backend**: 100% Supabase (Auth + Postgres com RLS + Storage + Edge Functions).
 - **Auth**: Supabase email/senha + RLS por `therapist_id = auth.uid()` (super_admin bypassa via `is_super_admin`).
 - **Roles**: `super_admin` (Kaio — Suporte Técnico), `admin` (Lenilson), `paciente`.
 
-## User Personas
-1. **Super Admin (Kaio)** — Suporte técnico, vê tudo do Lenilson, acessa `/configuracoes`.
-2. **Admin (Lenilson)** — Gerencia pacientes, agenda, prontuários, financeiro, PDFs.
-3. **Paciente** — Portal limitado em `/portal-paciente` com seus próprios dados.
+## What's been implemented
 
-## Core Requirements
-- Dashboard com 4 stat cards + próximas sessões + hero card de boas-vindas
-- Agenda semanal com navegação prev/today/next + criação rápida de agendamento
-- CRUD completo de pacientes com classificação (urgente/atenção/estável/alta)
-- Perfil do paciente com 10+ abas clínicas (Resumo, Anamnese, Avaliação, Prontuários, Sessões, Sinais Vitais, Evolução, Financeiro, Anexos, Dados)
-- Prontuário SOAP + EVA + Sinais Vitais + Técnicas + ADM + Testes especiais + Neurológico + Mapa de Dor + Perimetria
-- Geração de 7 tipos de PDF (Prontuário, Mensal, Comprovante, Frequência, Anamnese, Financeiro, Evolução)
-- Portal do paciente (visão limitada)
-- Configurações com 5 abas (Clínica, Usuários, Aparência/Temas, Logs, Relatórios) — super_admin only
-- Componente MessageModal (WhatsApp + Email)
-- CPF com máscara automática
-- Temas alternáveis (6 paletas)
+### 2026-06-08 — MVP inicial
+✅ Login + Dashboard + Pacientes + Agenda + Prontuário + 13 abas clínicas + Portal do Paciente.
+✅ Conexão com Supabase produção via VITE_* env vars.
+✅ Logo + foto reais integrados.
+✅ Detalhe do paciente com navegação por clique na linha (TanStack onClick navigate).
+✅ Rota `pacientes_.$id.tsx` (TanStack non-nested syntax).
 
-## What's been implemented (2026-06-08)
-✅ **Replica completa do Lovable copiada para `/app/frontend` (Vite + TanStack Start)**
-✅ **Conexão com Supabase em produção** (URL + anon key configurados em `.env`)
-✅ **Login funcional** — testado com `kaiohhenrique21@gmail.com` → redirecionou para `/dashboard`
-✅ **Dashboard real** — exibindo 4 pacientes ativos do banco + badge "Suporte Técnico" para super_admin
-✅ **Lista de pacientes** — exibindo os 4 pacientes reais com classificações coloridas
-✅ **Agenda semanal** — navegação por semana funcionando (botões com aria-label "Anterior"/"Próxima")
-✅ **Prontuário novo** — formulário SOAP + EVA + busca de paciente renderizando
-✅ **Detalhe do paciente** — 13 abas clínicas (SOAP, Anamnese, Funcional, Mapa de dor, ADM, Testes, Neurológico, Perimetria, Evolução, Sessões, Sinais Vitais, Metas, Anexos) renderizando com dados reais
-✅ **Logo e foto reais** do Lenilson e da clínica integrados (`/public/`)
-✅ **Temas, CSS variables, gradient-brand** funcionando
-✅ **MessageModal** com título dinâmico "Contato — {nome}" e WhatsApp/Email
-✅ **Navegação por clique no card de paciente** (TanStack onClick navigate)
-✅ **Rota de detalhe** renomeada para `pacientes_.$id.tsx` (TanStack non-nested syntax)
-✅ **Removidas dependências do runtime Lovable** (server functions convertidas para Supabase client direto, lovable error reporting é safe no-op)
-✅ **Vite configurado** para rodar em `0.0.0.0:3000` com `allowedHosts: true` e HMR via WSS
-✅ **Node 22** instalado (requisito do `@tanstack/react-start`)
-✅ **Testing agent: 100% de sucesso no frontend** (iteration_2.json) — todos os 3 bugs do iteration_1 corrigidos
+### 2026-06-09 — Iteração completa P0/P1/P2 (100% nos testes)
 
-## Decisões técnicas tomadas
-- `login_attempts` agora é inserido via client (best-effort, RLS controla quem pode)
-- `createPatientPortalAccess` precisa de uma Edge Function (Deno) no Supabase para criar usuários com `auth.admin.createUser`. Sem isso usa `signUp` direto (paciente recebe email de confirmação, mas o vínculo `patient_user_id` precisa ser feito por uma function server-side). **MOCKED** parcialmente: o código tenta `supabase.functions.invoke("create-patient-portal")` e cai em fallback.
-- O backend FastAPI continua rodando no supervisor mas **não é utilizado** pelo frontend.
+**🔴 P0 — Edge Function + PDFs**
+✅ Edge Function `create-patient-portal/index.ts` criada em `/app/frontend/supabase/functions/`. Pendente **deploy via CLI**: `supabase functions deploy create-patient-portal`.
+✅ Frontend `patient-portal.functions.ts` chamando a Edge Function via `supabase.functions.invoke`.
+✅ Todos os 7 PDFs reescritos:
+   - Cabeçalho com gradiente azul→verde (28 mm) padronizado.
+   - Rodapé padrão: `FisioAgenda Pro · Lenilson Gouveia de Jesus · CREFITO-9 · Gerado em DD/MM/AAAA às HH:MM`.
+   - Paginação `Página X de Y` em TODAS as páginas (função `paginate()`).
+   - **Sem bloco de assinatura do profissional** (removido de Prontuário e Comprovante).
+   - PDF Anamnese é o único com assinatura — **do paciente**.
+   - CPF mascarado: `***.***.NNN-NN`.
+   - Moeda: `R$ X.XXX,XX` via `Intl.NumberFormat`.
+   - Datas: `DD/MM/AAAA` via date-fns + `ptBR`.
 
-## Prioritized Backlog (P0/P1/P2)
+**🟠 P1 — AlertDialog + Acessibilidade + Upload**
+✅ Componente `ConfirmDialog` (Radix AlertDialog) criado em `/app/frontend/src/components/ConfirmDialog.tsx`.
+✅ Todos os 7 `confirm()` substituídos por ConfirmDialog em:
+   - `pacientes_.$id.tsx` (Records, Sessions, Vitals, Goals)
+   - `agenda.tsx` (agendamentos)
+   - `AttachmentsTab.tsx` (anexos)
+   - `FunctionalTab.tsx` (avaliações funcionais)
+✅ `DialogDescription` (com `className="sr-only"` quando apropriado) adicionado em 11 arquivos.
+✅ Upload de **logo da clínica** + **foto do profissional** em `/configuracoes` (aba Clínica):
+   - Limite: 2 MB logo / 4 MB foto.
+   - Path: `branding/logo-{ts}.{ext}` / `branding/lenilson-{ts}.{ext}` no bucket `clinic-assets`.
+   - Signed URL de **10 anos**.
+   - Persistência em `clinic_settings.logo_url` / `clinic_settings.professional_photo_url`.
+✅ Hook `useClinicAssets` lê valores salvos e usa fallback estático.
+✅ Migration `202606080002_clinic_settings_logo_url.sql` adiciona coluna `logo_url`.
 
-### P0 — Próximas ações imediatas
-- [ ] Criar **Edge Function `create-patient-portal`** no Supabase Deno para completar criação de acesso de paciente (precisa do service_role key)
-- [ ] Testar fluxo completo: criar paciente → criar agendamento → realizar sessão → gerar prontuário SOAP → baixar PDF
-- [ ] Validar geração dos 7 PDFs com dados reais
+**🟡 P2 — Dashboard + Pacotes**
+✅ Dashboard com 3 novas seções:
+   - **Precisam de atenção**: lista pacientes urgente/atenção, ordenados (urgente primeiro), com link "Ver perfil".
+   - **Sessões por dia (semana atual)**: Recharts BarChart Dom-Sáb com cor `var(--primary)`.
+   - **Aniversariantes do mês**: cards clicáveis (oculto quando vazio).
+✅ Sistema de **Pacotes de Sessões**:
+   - Migration `202606080001_session_packages.sql` (cria tabela + RLS + triggers).
+   - Aba "Pacotes" entre "Metas" e "Anexos".
+   - Templates rápidos: 5×/10×/20× com descontos progressivos (5%/10%/15%).
+   - Form com cálculo automático (subtotal → desconto → total).
+   - Status visual: ativo / concluído / vencido / aguarda pagamento.
+   - Ações: Usar 1 sessão (incrementa `used_sessions`), Marcar como pago, Excluir.
+   - Graceful fallback se a migration não foi aplicada (mostra empty state).
 
-### P1 — Curto prazo
-- [ ] Upload de assets (logo, foto) via Supabase Storage bucket `clinic-assets` (configurações)
-- [ ] Validar todas as abas clínicas (Anamnese, Mapa de Dor, ADM, Testes, Neuro, Perimetria) com dados reais
-- [ ] Portal do paciente — validar acesso restrito por role
-- [ ] Logs de auditoria (`login_attempts`) — confirmar RLS para super_admin ler
+**✅ Qualidade global**
+✅ CPF com máscara `000.000.000-00` em tempo real (já presente).
+✅ CPF mascarado em PDFs: `***.***.NNN-NN`.
+✅ Persistência de tema em `localStorage['fisio-theme']` + sync com `clinic_settings.theme` (sem flash no boot).
+✅ DeletePatientButton agora usa `navigate()` em vez de `window.location.href`.
+✅ Toasts de feedback padronizados em todas as operações.
+✅ Empty states em todas as listas.
 
-### P2 — Médio prazo (melhorias)
-- [ ] Card "Pacientes que precisam de atenção" no dashboard (urgente/atenção)
-- [ ] Card "Aniversariantes do mês"
-- [ ] Gráfico de barras: sessões por dia da semana
-- [ ] Lembrete automático via WhatsApp/Email 1 dia antes da sessão
-- [ ] Sistema de pacote de sessões (10x com desconto)
+## ⚠️ Ações manuais pendentes (lado do usuário no Supabase)
+
+1. **Aplicar migrations** via Supabase Dashboard ou CLI:
+   - `/app/frontend/supabase/migrations/202606080001_session_packages.sql` — destrava aba Pacotes
+   - `/app/frontend/supabase/migrations/202606080002_clinic_settings_logo_url.sql` — destrava upload do logo
+
+2. **Deploy da Edge Function**:
+   ```bash
+   supabase functions deploy create-patient-portal
+   ```
+   Necessária para "Criar acesso ao portal" funcionar end-to-end (precisa do `SUPABASE_SERVICE_ROLE_KEY` configurado no ambiente da function).
+
+## Test Results
+- **iteration_1.json**: 85% (3 bugs reportados)
+- **iteration_2.json**: 100% (todos os 3 bugs do iter_1 corrigidos)
+- **iteration_3.json**: 100% (10/10 features P0/P1/P2 verificadas) + 1 hardening aplicado depois (PackagesTab graceful fallback)
+
+## Prioritized Backlog
+
+### Curto prazo
+- [ ] Aplicar as 2 migrations e deployar a Edge Function (ações do usuário)
+- [ ] Após deploy, validar fluxo end-to-end: criar paciente → criar acesso ao portal → paciente faz login → vê dados próprios
+- [ ] Validar visualmente os 7 PDFs com dados reais (gerar e abrir cada um)
 
 ### Backlog técnico
-- [ ] Considerar migrar SSR (TanStack Start) para SPA puro se houver problemas de deployment
-- [ ] Remover diretório `/app/backend` quando confirmado que não é necessário
-- [ ] Pre-build de produção: `vite build` + servir `dist/`
+- [ ] Regenerar tipos do Supabase após aplicar migrations (`supabase gen types typescript`) e remover `as any` em PackagesTab
+- [ ] Considerar extrair as 3 novas seções do dashboard para `/components/dashboard/*` se mais sections forem adicionadas
+- [ ] Substituir `confirm()` remanescentes em `ThemeTab` (se houver futuros) por ConfirmDialog
+- [ ] Remover diretório `/app/backend` (FastAPI não utilizado)
+
+### Backlog de produto
+- [ ] Lembrete automático via WhatsApp/Email 1 dia antes da sessão
+- [ ] Integração com gateway de pagamento (Pix dinâmico) para cobrar pacotes
+- [ ] Notificações push quando paciente confirma/cancela
+- [ ] Métricas de retenção: % de pacientes ativos há > 3 meses

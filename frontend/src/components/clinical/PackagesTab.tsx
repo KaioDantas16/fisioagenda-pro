@@ -73,9 +73,17 @@ export function PackagesTab({ patientId }: { patientId: string }) {
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("session_packages")
         .select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        // Tabela ainda não criada (migration pendente) — tratamos como lista vazia.
+        if (/relation .* does not exist|PGRST205/i.test(error.message ?? "")) {
+          console.warn("[PackagesTab] session_packages table not provisioned yet. Apply migration: /app/frontend/supabase/migrations/202606080001_session_packages.sql");
+          return [];
+        }
+        throw error;
+      }
       return (data ?? []) as Pkg[];
     },
+    retry: false,
   });
 
   function applyTemplate(t: typeof TEMPLATES[number]) {
