@@ -432,7 +432,7 @@ function ReportsTab() {
       .filter((a: any) => a.payment_status === "pago")
       .reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
     const pendingTotal = (appts ?? [])
-      .filter((a: any) => a.payment_status === "pendente" || !a.payment_status)
+      .filter((a: any) => a.payment_status === "pendente")
       .reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
     return { now, patients: list, appointments: appts ?? [], total, attended, revenue, pendingTotal };
   }

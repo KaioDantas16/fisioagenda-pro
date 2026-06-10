@@ -72,7 +72,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
     .reduce((sum, a) => sum + (Number(a.price) || 0), 0);
 
   const totalPending = appointments
-    .filter((a) => a.payment_status === "pendente" || !a.payment_status)
+    .filter((a) => a.payment_status === "pendente")
     .reduce((sum, a) => sum + (Number(a.price) || 0), 0);
 
   const totalGeneral = totalPaid + totalPending;
