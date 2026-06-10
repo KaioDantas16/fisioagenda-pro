@@ -249,7 +249,7 @@ function Agenda() {
                     description="Esta ação não pode ser desfeita. O agendamento será removido permanentemente."
                     confirmLabel="Excluir permanentemente"
                     destructive
-                    onConfirm={() => remove(a.id)} />
+                    onConfirm={async () => { await remove(a.id); }} />
                 </li>
               );
             })}

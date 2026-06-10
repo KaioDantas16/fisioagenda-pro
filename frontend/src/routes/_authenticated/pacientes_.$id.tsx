@@ -33,6 +33,7 @@ import { EvolutionTab } from "@/components/clinical/EvolutionTab";
 import { AttachmentsTab } from "@/components/clinical/AttachmentsTab";
 import { NeuroTab } from "@/components/clinical/NeuroTab";
 import { PackagesTab } from "@/components/clinical/PackagesTab";
+import { FinanceTab } from "@/components/clinical/FinanceTab";
 
 export const Route = createFileRoute("/_authenticated/pacientes_/$id")({
   head: () => ({ meta: [{ title: "Paciente — FisioAgenda Pro" }] }),
@@ -156,6 +157,7 @@ function PatientProfile() {
           <TabsTrigger value="vitals">Sinais Vitais</TabsTrigger>
           <TabsTrigger value="goals">Metas</TabsTrigger>
           <TabsTrigger value="packages">Pacotes</TabsTrigger>
+          <TabsTrigger value="finance">Financeiro</TabsTrigger>
           <TabsTrigger value="attachments">Anexos</TabsTrigger>
         </TabsList>
         <TabsContent value="records" className="mt-4">
@@ -176,6 +178,9 @@ function PatientProfile() {
         <TabsContent value="vitals" className="mt-4"><VitalsTab patientId={id} vitals={vitals} onChange={invAll} /></TabsContent>
         <TabsContent value="goals" className="mt-4"><GoalsTab patientId={id} goals={goals} onChange={invAll} /></TabsContent>
         <TabsContent value="packages" className="mt-4"><PackagesTab patientId={id} /></TabsContent>
+        <TabsContent value="finance" className="mt-4">
+          <FinanceTab patientId={id} patient={patient} sessions={sessions} onChange={invAll} />
+        </TabsContent>
         <TabsContent value="attachments" className="mt-4"><AttachmentsTab patientId={id} /></TabsContent>
       </Tabs>
     </div>
@@ -341,7 +346,7 @@ function RecordsTab({ patientId, patient, records, onChange }: any) {
                 description="Esta ação não pode ser desfeita. O prontuário SOAP será removido permanentemente."
                 confirmLabel="Excluir permanentemente"
                 destructive
-                onConfirm={() => remove(r.id)} />
+                onConfirm={async () => { await remove(r.id); }} />
             </div>
           </div>
           {(r.cid10 || r.pain_location_text || (r.body_regions && r.body_regions.length > 0)) && (
@@ -473,7 +478,7 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
             description="Esta ação não pode ser desfeita. A sessão será removida permanentemente do histórico."
             confirmLabel="Excluir permanentemente"
             destructive
-            onConfirm={() => remove(s.id)} />
+            onConfirm={async () => { await remove(s.id); }} />
         </div>
       ))}
     </div>
@@ -559,7 +564,7 @@ function VitalsTab({ patientId, vitals, onChange }: any) {
                     description="Esta ação não pode ser desfeita. O registro de sinais vitais será removido permanentemente."
                     confirmLabel="Excluir permanentemente"
                     destructive
-                    onConfirm={() => remove(v.id)} /></td>
+                    onConfirm={async () => { await remove(v.id); }} /></td>
                 </tr>
               ))}
             </tbody>
@@ -628,7 +633,7 @@ function GoalsTab({ patientId, goals, onChange }: any) {
               description="Esta ação não pode ser desfeita. A meta terapêutica será removida permanentemente."
               confirmLabel="Excluir permanentemente"
               destructive
-              onConfirm={() => remove(g.id)} />
+              onConfirm={async () => { await remove(g.id); }} />
           </div>
           <div className="mt-3">
             <div className="flex items-center gap-2 mb-1">

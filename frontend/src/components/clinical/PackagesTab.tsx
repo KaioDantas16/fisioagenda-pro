@@ -11,11 +11,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Package, CheckCircle2 } from "lucide-react";
+import { Plus, Package, CheckCircle2, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { fmtBRL } from "@/lib/cpf";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PixCheckoutModal } from "../PixCheckoutModal";
 
 type Pkg = {
   id: string;
@@ -297,7 +298,7 @@ export function PackagesTab({ patientId }: { patientId: string }) {
                     title="Registrar uso de uma sessão?"
                     description={`Restantes após uso: ${p.total_sessions - p.used_sessions - 1} sessões.`}
                     confirmLabel="Confirmar uso"
-                    onConfirm={() => useSession(p)} />
+                    onConfirm={async () => { await useSession(p); }} />
                   {p.payment_status !== "pago" && (
                     <>
                       {p.payment_method === "Pix" && (
@@ -316,7 +317,7 @@ export function PackagesTab({ patientId }: { patientId: string }) {
                     description={`O pacote "${p.package_name}" e seu histórico de uso serão removidos.`}
                     confirmLabel="Excluir permanentemente"
                     destructive
-                    onConfirm={() => remove(p)} />
+                    onConfirm={async () => { await remove(p); }} />
                 </div>
                 {p.notes && <p className="text-xs text-muted-foreground italic">{p.notes}</p>}
               </li>

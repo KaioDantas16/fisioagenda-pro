@@ -163,6 +163,11 @@ END $$;
 -- 6) Coluna body_regions na tabela records
 ALTER TABLE public.records ADD COLUMN IF NOT EXISTS body_regions TEXT[] DEFAULT '{}';
 
+-- 7) Colunas financeiras na tabela sessions
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pendente';
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS payment_date DATE;
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS financial_notes TEXT;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Pós-migrations: rodar este SELECT para verificar
 -- SELECT 'session_packages' AS t, count(*) FROM public.session_packages

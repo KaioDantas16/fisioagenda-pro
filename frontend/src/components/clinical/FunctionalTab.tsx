@@ -81,7 +81,7 @@ export function FunctionalTab({ patientId }: { patientId: string }) {
               description="Esta ação não pode ser desfeita. A avaliação será removida permanentemente."
               confirmLabel="Excluir permanentemente"
               destructive
-              onConfirm={() => remove(a.id)} />
+              onConfirm={async () => { await remove(a.id); }} />
           </div>
           {FIELDS.map((f) => a[f.key] ? (
             <div key={f.key} className="text-sm"><span className="font-bold text-primary">{f.label}: </span><span className="whitespace-pre-wrap">{a[f.key]}</span></div>

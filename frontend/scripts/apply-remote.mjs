@@ -130,7 +130,8 @@ ${C.bold}Como configurar o acesso ao banco remoto com segurança:${C.reset}
       { name: "202606090003_clinic_settings_therapist_and_storage.sql", path: join(root, "supabase", "migrations", "202606090003_clinic_settings_therapist_and_storage.sql") },
       { name: "202606090002_cleanup_and_seed_joao.sql", path: join(root, "supabase", "migrations", "202606090002_cleanup_and_seed_joao.sql") },
       { name: "202606090004_fix_patient_scope.sql", path: join(root, "supabase", "migrations", "202606090004_fix_patient_scope.sql") },
-      { name: "202606100001_records_body_regions.sql", path: join(root, "supabase", "migrations", "202606100001_records_body_regions.sql") }
+      { name: "202606100001_records_body_regions.sql", path: join(root, "supabase", "migrations", "202606100001_records_body_regions.sql") },
+      { name: "202606100002_session_payments.sql", path: join(root, "supabase", "migrations", "202606100002_session_payments.sql") }
     ];
 
     for (const file of files) {

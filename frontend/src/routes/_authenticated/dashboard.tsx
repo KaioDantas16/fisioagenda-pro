@@ -6,8 +6,9 @@ import { OWNER_PHOTO_URL, CLINIC, APPOINTMENT_STATUS, CLASSIFICATIONS } from "@/
 import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import {
   Calendar, Users, Activity, TrendingUp, Phone, Plus, UserPlus, FileText,
-  AlertTriangle, Cake,
+  AlertTriangle, Cake, CheckCircle, DollarSign, Clock,
 } from "lucide-react";
+import { fmtBRL } from "@/lib/cpf";
 import {
   format, startOfDay, endOfDay, startOfWeek, endOfWeek,
   startOfMonth, endOfMonth, addDays,
@@ -67,6 +68,86 @@ function Dashboard() {
       };
     },
     enabled: !!therapistId,
+  });
+
+  const { data: financeStats } = useQuery({
+    queryKey: ["dashboard-finance", therapistId],
+    queryFn: async () => {
+      if (!therapistId) return null;
+      
+      // 1. Recebimentos de hoje (pago e payment_date = hoje)
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const { data: todayPayments } = await supabase
+        .from("sessions")
+        .select("price")
+        .eq("therapist_id", therapistId)
+        .eq("payment_status", "pago")
+        .eq("payment_date", todayStr);
+        
+      const receivedToday = (todayPayments ?? []).reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+
+      // 2. Pendências em aberto (status = pendente)
+      const { data: pendingSessions } = await supabase
+        .from("sessions")
+        .select("price, patient_id, patients(full_name)")
+        .eq("therapist_id", therapistId)
+        .eq("payment_status", "pendente");
+        
+      const pendingOpen = (pendingSessions ?? []).reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+
+      // 3. Faturamento do mês (pago e payment_date no mês atual)
+      const monthStartStr = format(monthStart, "yyyy-MM-dd");
+      const monthEndStr = format(monthEnd, "yyyy-MM-dd");
+      
+      const { data: monthPayments } = await supabase
+        .from("sessions")
+        .select("price, payment_method")
+        .eq("therapist_id", therapistId)
+        .eq("payment_status", "pago")
+        .gte("payment_date", monthStartStr)
+        .lte("payment_date", monthEndStr);
+
+      const faturamentoMonth = (monthPayments ?? []).reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+
+      // 4. Faturamento por método de pagamento
+      const methodMap: Record<string, number> = { pix: 0, dinheiro: 0, cartao: 0, convenio: 0, outro: 0 };
+      (monthPayments ?? []).forEach((s) => {
+        const method = s.payment_method || "outro";
+        const val = Number(s.price) || 0;
+        if (method in methodMap) {
+          methodMap[method] += val;
+        } else {
+          methodMap[method] = (methodMap[method] || 0) + val;
+        }
+      });
+      const faturamentoByMethod = Object.entries(methodMap).map(([key, value]) => ({
+        method: key === "cartao" ? "Cartão" : key === "pix" ? "Pix" : key === "dinheiro" ? "Dinheiro" : key === "convenio" ? "Convênio" : "Outro",
+        value
+      }));
+
+      // 5. Pacientes com pendência
+      const pendingByPatientMap: Record<string, { name: string; amount: number; count: number; id: string }> = {};
+      (pendingSessions ?? []).forEach((s: any) => {
+        const pId = s.patient_id;
+        const pName = s.patients?.full_name || "Desconhecido";
+        const amt = Number(s.price) || 0;
+        if (!pendingByPatientMap[pId]) {
+          pendingByPatientMap[pId] = { id: pId, name: pName, amount: 0, count: 0 };
+        }
+        pendingByPatientMap[pId].amount += amt;
+        pendingByPatientMap[pId].count += 1;
+      });
+      const pendingPatients = Object.values(pendingByPatientMap).sort((a, b) => b.amount - a.amount);
+
+      return {
+        receivedToday,
+        pendingOpen,
+        faturamentoMonth,
+        faturamentoByMethod,
+        pendingPatients
+      };
+    },
+    enabled: !!therapistId
   });
 
   const { data: nextAppts = [] } = useQuery({
@@ -167,6 +248,106 @@ function Dashboard() {
         <Button asChild variant="outline"><Link to="/pacientes"><UserPlus className="h-4 w-4 mr-1" />Novo paciente</Link></Button>
         <Button asChild variant="outline"><Link to="/pacientes"><FileText className="h-4 w-4 mr-1" />Ver pacientes</Link></Button>
       </div>
+
+      {/* Balanço Financeiro */}
+      {financeStats && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Balanço Financeiro</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
+            <div className="bg-card rounded-2xl p-4 lg:p-5 shadow-card flex items-center gap-3 border border-emerald-100 dark:border-emerald-950/30">
+              <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle className="h-5 w-5 lg:h-6 lg:w-6" />
+              </div>
+              <div>
+                <p className="text-[11px] lg:text-xs text-muted-foreground leading-tight">Recebidos hoje</p>
+                <p className="text-xl lg:text-2xl font-display font-bold leading-tight text-emerald-600 dark:text-emerald-400">
+                  {fmtBRL(financeStats.receivedToday)}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-2xl p-4 lg:p-5 shadow-card flex items-center gap-3 border border-amber-100 dark:border-amber-950/30">
+              <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 lg:h-6 lg:w-6" />
+              </div>
+              <div>
+                <p className="text-[11px] lg:text-xs text-muted-foreground leading-tight">Pendências em aberto</p>
+                <p className="text-xl lg:text-2xl font-display font-bold leading-tight text-amber-600 dark:text-amber-400">
+                  {fmtBRL(financeStats.pendingOpen)}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-2xl p-4 lg:p-5 shadow-card flex items-center gap-3 border border-slate-100 dark:border-slate-800">
+              <div className="h-10 w-10 lg:h-12 lg:w-12 rounded-xl bg-slate-50 dark:bg-slate-800 text-primary flex items-center justify-center shrink-0">
+                <DollarSign className="h-5 w-5 lg:h-6 lg:w-6" />
+              </div>
+              <div>
+                <p className="text-[11px] lg:text-xs text-muted-foreground leading-tight">Faturamento do mês</p>
+                <p className="text-xl lg:text-2xl font-display font-bold leading-tight">
+                  {fmtBRL(financeStats.faturamentoMonth)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
+            {/* Faturamento por Método */}
+            <div className="bg-card rounded-2xl p-6 shadow-card border">
+              <h4 className="text-sm font-semibold mb-4 text-foreground uppercase tracking-wider">Faturamento por Método (Mês Atual)</h4>
+              <div className="space-y-3">
+                {financeStats.faturamentoByMethod.map((item) => {
+                  const percent = financeStats.faturamentoMonth > 0 
+                    ? Math.round((item.value / financeStats.faturamentoMonth) * 100) 
+                    : 0;
+                  return (
+                    <div key={item.method} className="space-y-1">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>{item.method}</span>
+                        <span className="text-muted-foreground">{fmtBRL(item.value)} ({percent}%)</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full gradient-brand" style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pacientes com Pendência */}
+            <div className="bg-card rounded-2xl p-6 shadow-card border">
+              <h4 className="text-sm font-semibold mb-4 text-foreground uppercase tracking-wider">Pacientes com Pendência</h4>
+              {financeStats.pendingPatients.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma pendência financeira em aberto 🎉</p>
+              ) : (
+                <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {financeStats.pendingPatients.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-950/45 text-amber-700 dark:text-amber-400 flex items-center justify-center text-xs font-bold">
+                          {p.name[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{p.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{p.count} sessões em atraso</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{fmtBRL(p.amount)}</span>
+                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                          <Link to="/pacientes/$id" params={{ id: p.id }} search={{ tab: "finance" }}>Ver Perfil</Link>
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
         {/* CARD: Pacientes que precisam de atenção */}

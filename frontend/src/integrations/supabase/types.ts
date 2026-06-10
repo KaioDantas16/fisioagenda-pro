@@ -175,12 +175,14 @@ export type Database = {
           crefito: string
           id: string
           instagram: string | null
+          logo_url: string | null
           name: string
           phone: string | null
           professional_name: string
           professional_photo_url: string | null
           specialties: Json
           theme: string
+          therapist_id: string | null
           updated_at: string
         }
         Insert: {
@@ -188,12 +190,14 @@ export type Database = {
           crefito?: string
           id?: string
           instagram?: string | null
+          logo_url?: string | null
           name?: string
           phone?: string | null
           professional_name?: string
           professional_photo_url?: string | null
           specialties?: Json
           theme?: string
+          therapist_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -201,12 +205,14 @@ export type Database = {
           crefito?: string
           id?: string
           instagram?: string | null
+          logo_url?: string | null
           name?: string
           phone?: string | null
           professional_name?: string
           professional_photo_url?: string | null
           specialties?: Json
           theme?: string
+          therapist_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -809,10 +815,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           duration_minutes: number
+          financial_notes: string | null
           id: string
           notes: string | null
           patient_id: string
+          payment_date: string | null
           payment_method: string | null
+          payment_status: string | null
           price: number | null
           procedure: string | null
           starts_at: string
@@ -825,10 +834,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number
+          financial_notes?: string | null
           id?: string
           notes?: string | null
           patient_id: string
+          payment_date?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           procedure?: string | null
           starts_at: string
@@ -841,10 +853,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number
+          financial_notes?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
+          payment_date?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           procedure?: string | null
           starts_at?: string

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export function AttachmentsTab({ patientId }: { patientId: string }) {
   const qc = useQueryClient();
@@ -76,7 +77,7 @@ export function AttachmentsTab({ patientId }: { patientId: string }) {
             description={`O arquivo "${a.file_name}" será removido permanentemente do storage e do banco. Esta ação não pode ser desfeita.`}
             confirmLabel="Excluir permanentemente"
             destructive
-            onConfirm={() => remove(a)} />
+            onConfirm={async () => { await remove(a); }} />
         </div>
       ))}
     </div>
