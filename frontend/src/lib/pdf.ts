@@ -176,7 +176,28 @@ function newDoc() { return new jsPDF({ unit: "mm", format: "a4" }); }
 // =============================================================================
 // Formatadores
 // =============================================================================
-const fmtDate = (d: any) => d ? format(new Date(d), "dd/MM/yyyy", { locale: ptBR }) : "—";
+const fmtDate = (d: any) => {
+  if (!d) return "—";
+  if (typeof d === "string") {
+    const match = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const day = parseInt(match[3], 10);
+      return format(new Date(year, month - 1, day), "dd/MM/yyyy", { locale: ptBR });
+    }
+  }
+  if (d instanceof Date) {
+    return format(d, "dd/MM/yyyy", { locale: ptBR });
+  }
+  try {
+    const dateObj = new Date(d);
+    if (!isNaN(dateObj.getTime())) {
+      return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
+    }
+  } catch (e) {}
+  return "—";
+};
 const fmtDateTime = (d: any) => d ? format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
 
 function sectionTitle(doc: jsPDF, text: string, y: number, config: PdfConfig) {
@@ -287,10 +308,18 @@ export async function downloadProntuarioPDF(args: {
     doc.text("Sem registros.", 14, y + 6); y += 10;
   } else {
     autoTable(doc, { startY: y + 2,
-      head: [["Data", "EVA", "CID-10", "S", "O", "A", "P"]],
-      body: args.records.map((r) => [fmtDate(r.record_date), r.pain_scale ?? "—", r.cid10 ?? "—", r.subjective ?? "—", r.objective ?? "—", r.assessment ?? "—", r.plan ?? "—"]),
+      head: [["Data", "EVA", "CID / Regiões", "S", "O", "A", "P"]],
+      body: args.records.map((r) => [
+        fmtDate(r.record_date),
+        r.pain_scale ?? "—",
+        `${r.cid10 ?? ""}${r.cid10 && r.body_regions?.length ? "\n" : ""}${r.body_regions && r.body_regions.length > 0 ? r.body_regions.map((reg: string) => reg.replace(/ \((Anterior|Posterior)\)/, "")).join(", ") : ""}` || "—",
+        r.subjective ?? "—",
+        r.objective ?? "—",
+        r.assessment ?? "—",
+        r.plan ?? "—"
+      ]),
       headStyles: { fillColor: config.primary, textColor: 255 }, styles: { fontSize: 7, cellPadding: 1.5 },
-      columnStyles: { 0: { cellWidth: 16 }, 1: { cellWidth: 10, halign: "center" }, 2: { cellWidth: 16 } },
+      columnStyles: { 0: { cellWidth: 16 }, 1: { cellWidth: 10, halign: "center" }, 2: { cellWidth: 26 } },
       didDrawPage: () => withChrome(doc, TITLE, config) });
     y = (doc as any).lastAutoTable.finalY + 4;
   }
@@ -539,6 +568,89 @@ export async function downloadClinicalEvolutionPDF(args: { patient: any; records
   doc.save(`evolucao-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
 
+// Auxiliar para desenhar o boneco anatômico (frente/costas) no PDF individual
+function drawBodyMapPDF(doc: jsPDF, xOffset: number, yOffset: number, selectedRegions: string[]) {
+  // Cores de contorno e preenchimento para as silhuetas anatômicas
+  doc.setFillColor(243, 244, 246); // Cinza bem claro (bg)
+  doc.setDrawColor(209, 213, 219); // Borda cinza médio
+  doc.setLineWidth(0.8);
+
+  const sides = [
+    { name: "anterior", centerX: xOffset + 22 },
+    { name: "posterior", centerX: xOffset + 68 }
+  ];
+
+  sides.forEach((side) => {
+    const cx = side.centerX;
+    
+    // Cabeça
+    doc.circle(cx, yOffset + 5, 3, "FD");
+    
+    // Pescoço
+    doc.line(cx, yOffset + 8, cx, yOffset + 10);
+    
+    // Tronco
+    doc.rect(cx - 5, yOffset + 10, 10, 14, "FD");
+    
+    // Braço Esquerdo
+    doc.line(cx - 5, yOffset + 11, cx - 9, yOffset + 22);
+    // Braço Direito
+    doc.line(cx + 5, yOffset + 11, cx + 9, yOffset + 22);
+    
+    // Pelve
+    doc.rect(cx - 5, yOffset + 24, 10, 3, "FD");
+    
+    // Perna Esquerda
+    doc.line(cx - 2.5, yOffset + 27, cx - 2.5, yOffset + 40);
+    // Perna Direita
+    doc.line(cx + 2.5, yOffset + 27, cx + 2.5, yOffset + 40);
+    
+    // Rótulo da vista do boneco
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(156, 163, 175);
+    doc.text(side.name === "anterior" ? "VISTA ANTERIOR" : "VISTA POSTERIOR", cx, yOffset + 45, { align: "center" });
+  });
+
+  // Mapeamento das coordenadas absolutas dos círculos vermelhos interativos
+  const points: Record<string, { x: number; y: number }> = {
+    // ANTERIOR (cx = xOffset + 22)
+    "Cervical (Anterior)": { x: xOffset + 22, y: yOffset + 9 },
+    "Ombro Direito": { x: xOffset + 15.5, y: yOffset + 11 },
+    "Ombro Esquerdo": { x: xOffset + 28.5, y: yOffset + 11 },
+    "Tórax/Abdômen": { x: xOffset + 22, y: yOffset + 16 },
+    "Cotovelo/Mão D": { x: xOffset + 12.5, y: yOffset + 21 },
+    "Cotovelo/Mão E": { x: xOffset + 31.5, y: yOffset + 21 },
+    "Quadril (Anterior)": { x: xOffset + 22, y: yOffset + 25 },
+    "Joelho Direito": { x: xOffset + 19.5, y: yOffset + 33 },
+    "Joelho Esquerdo": { x: xOffset + 24.5, y: yOffset + 33 },
+    "Tornozelo/Pé D": { x: xOffset + 19.5, y: yOffset + 40 },
+    "Tornozelo/Pé E": { x: xOffset + 24.5, y: yOffset + 40 },
+
+    // POSTERIOR (cx = xOffset + 68)
+    "Cervical (Posterior)": { x: xOffset + 68, y: yOffset + 9 },
+    "Coluna Torácica": { x: xOffset + 68, y: yOffset + 14 },
+    "Coluna Lombar": { x: xOffset + 68, y: yOffset + 20 },
+    "Quadril/Glúteos": { x: xOffset + 68, y: yOffset + 25 },
+    "Joelho D (Posterior)": { x: xOffset + 65.5, y: yOffset + 33 },
+    "Joelho E (Posterior)": { x: xOffset + 70.5, y: yOffset + 33 },
+    "Tornozelo/Pé D (Posterior)": { x: xOffset + 65.5, y: yOffset + 40 },
+    "Tornozelo/Pé E (Posterior)": { x: xOffset + 70.5, y: yOffset + 40 },
+  };
+
+  // Desenhar círculos vermelhos/laranja para os pontos selecionados
+  doc.setFillColor(239, 68, 68); // Vermelho coral vibrante
+  doc.setDrawColor(255, 255, 255); // Borda branca de destaque
+  doc.setLineWidth(0.4);
+
+  selectedRegions.forEach((regionId) => {
+    const pt = points[regionId];
+    if (pt) {
+      doc.circle(pt.x, pt.y, 2, "FD");
+    }
+  });
+}
+
 // =============================================================================
 // 8) PRONTUÁRIO INDIVIDUAL (SOAP + MAPA CORPORAL)
 // =============================================================================
@@ -559,7 +671,7 @@ export async function downloadProntuarioIndividualPDF(args: {
   // Data e Informações Gerais em Tabela
   const r = args.record;
   const generalData = [
-    ["Data do Atendimento", r.record_date ? format(new Date(r.record_date + "T12:00:00"), "dd/MM/yyyy") : "—"],
+    ["Data do Atendimento", fmtDate(r.record_date)],
     ["Escala de Dor (EVA)", r.pain_scale !== null && r.pain_scale !== undefined ? `${r.pain_scale}/10` : "—"],
     ["Escore de Evolução", r.evolution_score !== null && r.evolution_score !== undefined ? `${r.evolution_score}/10` : "—"],
     ["CID-10", r.cid10 || "—"],
@@ -575,12 +687,36 @@ export async function downloadProntuarioIndividualPDF(args: {
     didDrawPage: () => withChrome(doc, TITLE, config)
   });
   
-  y = (doc as any).lastAutoTable.finalY + 6;
-  y = pageGuard(doc, y, TITLE, config, 40);
+  let currentY = (doc as any).lastAutoTable.finalY + 6;
+
+  // Seção: Mapa Corporal Visual
+  currentY = pageGuard(doc, currentY, TITLE, config, 65);
+  sectionTitle(doc, "Mapa Corporal / Regiões Marcadas", currentY, config);
+  currentY += 4;
+  
+  // Desenhar silhuetas e os pontos clicados
+  const mapWidth = 90; // largura do mapa
+  const mapX = (doc.internal.pageSize.getWidth() - mapWidth) / 2;
+  drawBodyMapPDF(doc, mapX, currentY, r.body_regions || []);
+  currentY += 52; // Espaço do mapa e rótulo
+  
+  // Detalhe textual das regiões abaixo do mapa
+  currentY = pageGuard(doc, currentY, TITLE, config, 25);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  const regionsListText = r.body_regions && r.body_regions.length > 0
+    ? `Regiões marcadas no mapa: ${r.body_regions.map((reg: string) => reg.replace(/ \((Anterior|Posterior)\)/, "")).join(", ")}`
+    : "Nenhuma região marcada no mapa.";
+  
+  const splitText = doc.splitTextToSize(regionsListText, doc.internal.pageSize.getWidth() - 28);
+  doc.text(splitText, 14, currentY);
+  currentY += (splitText.length * 4) + 6;
   
   // Detalhes SOAP em tabela
-  sectionTitle(doc, "Evolução SOAP", y, config);
-  y += 4;
+  currentY = pageGuard(doc, currentY, TITLE, config, 45);
+  sectionTitle(doc, "Evolução SOAP", currentY, config);
+  currentY += 4;
   
   const soapData = [
     ["S — Subjetivo", r.subjective || "—"],
@@ -590,7 +726,7 @@ export async function downloadProntuarioIndividualPDF(args: {
   ];
   
   autoTable(doc, {
-    startY: y,
+    startY: currentY,
     body: soapData,
     styles: { fontSize: 9, cellPadding: 3.5, overflow: "linebreak" },
     columnStyles: { 
