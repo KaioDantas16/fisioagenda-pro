@@ -428,26 +428,39 @@ function ReportsTab() {
     }));
     const total = (appts ?? []).length;
     const attended = (appts ?? []).filter((a: any) => a.status === "realizado").length;
-    const revenue = (appts ?? []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
-    return { now, patients: list, appointments: appts ?? [], total, attended, revenue };
+    const revenue = (appts ?? [])
+      .filter((a: any) => a.payment_status === "pago")
+      .reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
+    const pendingTotal = (appts ?? [])
+      .filter((a: any) => a.payment_status === "pendente" || !a.payment_status)
+      .reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
+    return { now, patients: list, appointments: appts ?? [], total, attended, revenue, pendingTotal };
   }
 
   async function genMonthly() {
-    const { now, patients, total, attended, revenue } = await loadCurrentMonthData();
+    const { now, patients, total, attended, revenue, pendingTotal } = await loadCurrentMonthData();
     downloadMonthlyReportPDF({
       monthLabel: format(now, "MM-yyyy"),
       patients,
-      totals: { totalPatients: patients.length, totalSessions: total, attendance: total ? (attended / total) * 100 : 0, revenue },
+      totals: { 
+        totalPatients: patients.length, 
+        totalSessions: total, 
+        attendance: total ? (attended / total) * 100 : 0, 
+        revenue,
+        pendingTotal
+      },
     });
   }
 
   async function genFinancial() {
-    const { now, patients, appointments, revenue } = await loadCurrentMonthData();
+    const { now, patients, appointments, revenue, pendingTotal } = await loadCurrentMonthData();
     const patientNames = new Map(patients.map((p: any) => [p.id, p.full_name]));
     const methodTotals = new Map<string, { method: string; total: number; count: number }>();
     const patientTotals = new Map<string, { full_name: string; total: number; sessions: number }>();
 
     appointments.forEach((a: any) => {
+      if (a.payment_status !== "pago") return;
+
       const amount = Number(a.price) || 0;
       const method = a.payment_method || "Não informado";
       const currentMethod = methodTotals.get(method) ?? { method, total: 0, count: 0 };
@@ -468,6 +481,7 @@ function ReportsTab() {
       byMethod: [...methodTotals.values()].sort((a, b) => b.total - a.total),
       topPatients: [...patientTotals.values()].sort((a, b) => b.total - a.total).slice(0, 10),
       grandTotal: revenue,
+      pendingTotal: pendingTotal,
     });
   }
   return (

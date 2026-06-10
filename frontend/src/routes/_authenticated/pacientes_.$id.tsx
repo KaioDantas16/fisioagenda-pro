@@ -179,7 +179,7 @@ function PatientProfile() {
         <TabsContent value="goals" className="mt-4"><GoalsTab patientId={id} goals={goals} onChange={invAll} /></TabsContent>
         <TabsContent value="packages" className="mt-4"><PackagesTab patientId={id} /></TabsContent>
         <TabsContent value="finance" className="mt-4">
-          <FinanceTab patientId={id} patient={patient} sessions={sessions} onChange={invAll} />
+          <FinanceTab patientId={id} patient={patient} onChange={invAll} />
         </TabsContent>
         <TabsContent value="attachments" className="mt-4"><AttachmentsTab patientId={id} /></TabsContent>
       </Tabs>

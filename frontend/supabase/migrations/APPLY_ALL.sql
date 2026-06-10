@@ -168,6 +168,12 @@ ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT
 ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS payment_date DATE;
 ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS financial_notes TEXT;
 
+-- 8) Colunas financeiras na tabela appointments
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pendente';
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS payment_method TEXT;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS payment_date DATE;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS financial_notes TEXT;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Pós-migrations: rodar este SELECT para verificar
 -- SELECT 'session_packages' AS t, count(*) FROM public.session_packages

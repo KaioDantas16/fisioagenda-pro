@@ -78,7 +78,7 @@ function Dashboard() {
       // 1. Recebimentos de hoje (pago e payment_date = hoje)
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const { data: todayPayments } = await supabase
-        .from("sessions")
+        .from("appointments")
         .select("price")
         .eq("therapist_id", therapistId)
         .eq("payment_status", "pago")
@@ -88,7 +88,7 @@ function Dashboard() {
 
       // 2. Pendências em aberto (status = pendente)
       const { data: pendingSessions } = await supabase
-        .from("sessions")
+        .from("appointments")
         .select("price, patient_id, patients(full_name)")
         .eq("therapist_id", therapistId)
         .eq("payment_status", "pendente");
@@ -100,7 +100,7 @@ function Dashboard() {
       const monthEndStr = format(monthEnd, "yyyy-MM-dd");
       
       const { data: monthPayments } = await supabase
-        .from("sessions")
+        .from("appointments")
         .select("price, payment_method")
         .eq("therapist_id", therapistId)
         .eq("payment_status", "pago")

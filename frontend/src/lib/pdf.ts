@@ -380,20 +380,27 @@ export async function downloadSessionReceiptPDF(args: { patient: any; session: a
 // =============================================================================
 export async function downloadMonthlyReportPDF(args: {
   monthLabel: string; patients: any[];
-  totals: { totalPatients: number; totalSessions: number; attendance: number; revenue: number };
+  totals: { totalPatients: number; totalSessions: number; attendance: number; revenue: number; pendingTotal?: number };
 }) {
   const config = await resolvePdfConfig();
   const TITLE = `Relatório Mensal — ${args.monthLabel}`;
   const doc = newDoc(); withChrome(doc, TITLE, config);
   let y = 42;
   sectionTitle(doc, "Resumo do mês", y, config); y += 4;
+  
+  const bodyRows = [
+    ["Pacientes ativos", String(args.totals.totalPatients)],
+    ["Total de sessões", String(args.totals.totalSessions)],
+    ["Taxa de presença", `${args.totals.attendance.toFixed(1)}%`],
+    ["Receita recebida (Pago)", fmtBRL(args.totals.revenue)],
+  ];
+
+  if (args.totals.pendingTotal !== undefined && args.totals.pendingTotal !== null) {
+    bodyRows.push(["Pendências em aberto", fmtBRL(args.totals.pendingTotal)]);
+  }
+
   autoTable(doc, { startY: y + 2,
-    body: [
-      ["Pacientes ativos", String(args.totals.totalPatients)],
-      ["Total de sessões", String(args.totals.totalSessions)],
-      ["Taxa de presença", `${args.totals.attendance.toFixed(1)}%`],
-      ["Receita estimada", fmtBRL(args.totals.revenue)],
-    ],
+    body: bodyRows,
     styles: { fontSize: 11, cellPadding: 3 },
     columnStyles: { 0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 60 } },
     didDrawPage: () => withChrome(doc, TITLE, config) });
@@ -487,14 +494,25 @@ export async function downloadFinancialPDF(args: {
   byMethod: { method: string; total: number; count: number }[];
   topPatients: { full_name: string; total: number; sessions: number }[];
   grandTotal: number;
+  pendingTotal?: number;
 }) {
   const config = await resolvePdfConfig();
   const TITLE = `Relatório Financeiro — ${args.periodLabel}`;
   const doc = newDoc(); withChrome(doc, TITLE, config);
   let y = 42;
-  sectionTitle(doc, "Receita total", y, config);
+  sectionTitle(doc, "Receita recebida (Pago)", y, config);
   doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.setTextColor(...config.accent);
   doc.text(fmtBRL(args.grandTotal), 14, y + 12);
+  
+  if (args.pendingTotal !== undefined && args.pendingTotal !== null) {
+    doc.setTextColor(40, 40, 40);
+    const w = doc.internal.pageSize.getWidth();
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text("Total Pendente:", w - 14, y + 4, { align: "right" });
+    doc.setFontSize(16); doc.setTextColor(245, 158, 11); // Amber
+    doc.text(fmtBRL(args.pendingTotal), w - 14, y + 12, { align: "right" });
+  }
+
   doc.setTextColor(40, 40, 40);
   y += 22;
 

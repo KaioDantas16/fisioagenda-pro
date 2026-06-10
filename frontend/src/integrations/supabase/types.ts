@@ -82,9 +82,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           duration_minutes: number
+          financial_notes: string | null
           id: string
           notes: string | null
           patient_id: string
+          payment_date: string | null
+          payment_method: string | null
+          payment_status: string | null
           price: number | null
           service: string
           starts_at: string
@@ -96,9 +100,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number
+          financial_notes?: string | null
           id?: string
           notes?: string | null
           patient_id: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           service: string
           starts_at: string
@@ -110,9 +118,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           duration_minutes?: number
+          financial_notes?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           service?: string
           starts_at?: string

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { fmtBRL } from "@/lib/cpf";
 import {
-  CheckCircle, DollarSign, Clock, Edit2, CreditCard, AlertCircle
+  CheckCircle, DollarSign, Clock, Edit2, CreditCard
 } from "lucide-react";
 
 interface FinanceTabProps {
   patientId: string;
   patient: any;
-  sessions: any[];
   onChange: () => void;
 }
 
@@ -41,9 +40,9 @@ const PAYMENT_STATUSES = [
   { value: "isento", label: "Isento" }
 ];
 
-export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTabProps) {
+export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
   const qc = useQueryClient();
-  const [editingSession, setEditingSession] = useState<any>(null);
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     price: "",
@@ -53,59 +52,75 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
     financial_notes: ""
   });
 
-  // Calcular métricas financeiras das sessões
-  const totalPaid = sessions
-    .filter((s) => s.payment_status === "pago")
-    .reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+  // Buscar agendamentos (consultas) do paciente
+  const { data: appointments = [], isLoading, refetch } = useQuery({
+    queryKey: ["appointments-finance", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("patient_id", patientId)
+        .order("starts_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    }
+  });
 
-  const totalPending = sessions
-    .filter((s) => s.payment_status === "pendente" || !s.payment_status)
-    .reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+  // Calcular métricas financeiras das consultas (appointments)
+  const totalPaid = appointments
+    .filter((a) => a.payment_status === "pago")
+    .reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+  const totalPending = appointments
+    .filter((a) => a.payment_status === "pendente" || !a.payment_status)
+    .reduce((sum, a) => sum + (Number(a.price) || 0), 0);
 
   const totalGeneral = totalPaid + totalPending;
 
-  // Marcar sessão como paga rapidamente
-  async function handleMarkAsPaid(session: any) {
+  // Marcar agendamento como pago rapidamente
+  async function handleMarkAsPaid(appt: any) {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const { error } = await supabase
-      .from("sessions")
+      .from("appointments")
       .update({
         payment_status: "pago",
         payment_date: todayStr
       })
-      .eq("id", session.id);
+      .eq("id", appt.id);
 
     if (error) {
-      toast.error(`Erro ao atualizar pagamento: ${error.message}`);
+      toast.error(`Erro ao registrar pagamento: ${error.message}`);
       return;
     }
 
     toast.success("Pagamento registrado com sucesso ✓");
+    refetch();
     onChange();
-    qc.invalidateQueries({ queryKey: ["sessions", patientId] });
+    qc.invalidateQueries({ queryKey: ["appointments-finance", patientId] });
+    qc.invalidateQueries({ queryKey: ["dashboard-finance"] });
   }
 
-  // Abrir modal de edição financeira da sessão
-  function handleOpenEdit(session: any) {
-    setEditingSession(session);
+  // Abrir modal de edição financeira do agendamento
+  function handleOpenEdit(appt: any) {
+    setEditingAppointment(appt);
     setForm({
-      price: session.price !== null && session.price !== undefined ? String(session.price) : "",
-      payment_method: session.payment_method || "pix",
-      payment_status: session.payment_status || "pendente",
-      payment_date: session.payment_date || format(new Date(), "yyyy-MM-dd"),
-      financial_notes: session.financial_notes || ""
+      price: appt.price !== null && appt.price !== undefined ? String(appt.price) : "",
+      payment_method: appt.payment_method || "pix",
+      payment_status: appt.payment_status || "pendente",
+      payment_date: appt.payment_date || format(new Date(), "yyyy-MM-dd"),
+      financial_notes: appt.financial_notes || ""
     });
     setOpen(true);
   }
 
-  // Salvar alterações financeiras da sessão
+  // Salvar alterações financeiras do agendamento
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingSession) return;
+    if (!editingAppointment) return;
 
     const priceNum = form.price ? Number(form.price) : null;
     const { error } = await supabase
-      .from("sessions")
+      .from("appointments")
       .update({
         price: priceNum,
         payment_method: form.payment_method || null,
@@ -113,18 +128,20 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
         payment_date: form.payment_status === "pago" ? form.payment_date : null,
         financial_notes: form.financial_notes || null
       })
-      .eq("id", editingSession.id);
+      .eq("id", editingAppointment.id);
 
     if (error) {
       toast.error(`Erro ao salvar alterações: ${error.message}`);
       return;
     }
 
-    toast.success("Financeiro da sessão atualizado ✓");
+    toast.success("Financeiro do agendamento atualizado ✓");
     setOpen(false);
-    setEditingSession(null);
+    setEditingAppointment(null);
+    refetch();
     onChange();
-    qc.invalidateQueries({ queryKey: ["sessions", patientId] });
+    qc.invalidateQueries({ queryKey: ["appointments-finance", patientId] });
+    qc.invalidateQueries({ queryKey: ["dashboard-finance"] });
   }
 
   function getStatusBadge(status: string) {
@@ -177,16 +194,18 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
 
       {/* Tabela de Histórico Financeiro */}
       <div className="bg-card rounded-2xl p-4 shadow-card border">
-        <h3 className="text-base font-semibold mb-4 text-foreground">Sessões e Faturamento</h3>
-        {sessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma sessão encontrada para este paciente.</p>
+        <h3 className="text-base font-semibold mb-4 text-foreground font-display">Agendamentos e Faturamento</h3>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Carregando dados financeiros...</p>
+        ) : appointments.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento encontrado para este paciente.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="border-b text-xs font-bold uppercase text-muted-foreground">
                   <th className="p-3">Data/Hora</th>
-                  <th className="p-3">Procedimento</th>
+                  <th className="p-3">Serviço/Procedimento</th>
                   <th className="p-3">Valor</th>
                   <th className="p-3">Status Pagamento</th>
                   <th className="p-3">Método</th>
@@ -195,34 +214,34 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sessions.map((s) => {
-                  const statusLabel = PAYMENT_STATUSES.find(st => st.value === (s.payment_status || "pendente"))?.label || "Pendente";
-                  const methodLabel = PAYMENT_METHODS.find(m => m.value === s.payment_method)?.label || "—";
+                {appointments.map((a) => {
+                  const statusLabel = PAYMENT_STATUSES.find(st => st.value === (a.payment_status || "pendente"))?.label || "Pendente";
+                  const methodLabel = PAYMENT_METHODS.find(m => m.value === a.payment_method)?.label || "—";
                   return (
-                    <tr key={s.id} className="hover:bg-muted/40 transition-colors">
+                    <tr key={a.id} className="hover:bg-muted/40 transition-colors">
                       <td className="p-3 whitespace-nowrap font-medium">
-                        {format(new Date(s.starts_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(a.starts_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </td>
-                      <td className="p-3">{s.procedure || "—"}</td>
-                      <td className="p-3 font-semibold">{s.price ? fmtBRL(s.price) : "R$ 0,00"}</td>
+                      <td className="p-3">{a.service || "—"}</td>
+                      <td className="p-3 font-semibold">{a.price ? fmtBRL(a.price) : "R$ 0,00"}</td>
                       <td className="p-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold ${getStatusBadge(s.payment_status || "pendente")}`}>
+                        <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold ${getStatusBadge(a.payment_status || "pendente")}`}>
                           {statusLabel}
                         </span>
                       </td>
                       <td className="p-3">{methodLabel}</td>
                       <td className="p-3">
-                        {s.payment_status === "pago" && s.payment_date 
-                          ? format(new Date(s.payment_date + "T12:00:00"), "dd/MM/yyyy") 
+                        {a.payment_status === "pago" && a.payment_date 
+                          ? format(new Date(a.payment_date + "T12:00:00"), "dd/MM/yyyy") 
                           : "—"}
                       </td>
                       <td className="p-3 text-right space-x-1 whitespace-nowrap">
-                        {s.payment_status !== "pago" && (
+                        {a.payment_status !== "pago" && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleMarkAsPaid(s)}
-                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-200 h-8 text-xs font-medium"
+                            onClick={() => handleMarkAsPaid(a)}
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900 h-8 text-xs font-medium"
                           >
                             Marcar Pago
                           </Button>
@@ -230,7 +249,7 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => handleOpenEdit(s)}
+                          onClick={() => handleOpenEdit(a)}
                           className="h-8 w-8 text-muted-foreground hover:text-primary"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
@@ -249,7 +268,7 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Financeiro da Sessão</DialogTitle>
+            <DialogTitle>Editar Financeiro do Agendamento</DialogTitle>
             <DialogDescription>
               Ajuste os valores, métodos e status de pagamento correspondentes.
             </DialogDescription>
@@ -257,7 +276,7 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Valor da Sessão (R$)</Label>
+                <Label>Valor da Consulta (R$)</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -319,7 +338,7 @@ export function FinanceTab({ patientId, patient, sessions, onChange }: FinanceTa
                 rows={2}
                 value={form.financial_notes}
                 onChange={(e) => setForm({ ...form, financial_notes: e.target.value })}
-                placeholder="Ex: Pago em dinheiro com desconto do pacote"
+                placeholder="Ex: Pago via Pix integralmente"
               />
             </div>
 
