@@ -42,16 +42,17 @@ export function AnamneseTab({ patientId, patient }: { patientId: string; patient
   const [form, setForm] = useState<any>({});
   useEffect(() => { if (data) setForm(data); }, [data]);
 
-  const comorb = splitList(form.notes?.match(/Comorbidades:(.*?)(\n|$)/)?.[1]);
-  const objectives = splitList(form.notes?.match(/Objetivos:(.*?)(\n|$)/)?.[1]);
-  const stressLevel = Number(form.notes?.match(/Estresse:(\d+)/)?.[1] ?? 0);
-  const doctorName = form.notes?.match(/Médico solicitante:(.*?)(\n|$)/)?.[1]?.trim() ?? "";
-  const insurancePlan = form.notes?.match(/Convênio:(.*?)(\n|$)/)?.[1]?.trim() ?? "";
-  const sessionsAuth = form.notes?.match(/Sessões autorizadas:(\d+)/)?.[1] ?? "";
+  const comorb = splitList(form.notes?.match(/Comorbidades:\s*(.*?)(\n|$)/)?.[1]);
+  const objectives = splitList(form.notes?.match(/Objetivos:\s*(.*?)(\n|$)/)?.[1]);
+  const stressLevel = Number(form.notes?.match(/Estresse:\s*(\d+)/)?.[1] ?? 0);
+  const doctorName = form.notes?.match(/Médico solicitante:\s*(.*?)(\n|$)/)?.[1]?.trim() ?? "";
+  const insurancePlan = form.notes?.match(/Convênio:\s*(.*?)(\n|$)/)?.[1]?.trim() ?? "";
+  const sessionsAuth = form.notes?.match(/Sessões autorizadas:\s*(\d+)/)?.[1] ?? "";
 
   function setNotesField(key: string, value: string) {
+    const valStr = value.toString().trim();
     const lines = (form.notes ?? "").split("\n").filter((l: string) => !l.startsWith(`${key}:`));
-    if (value.trim()) lines.push(`${key}: ${value}`);
+    if (valStr) lines.push(`${key}: ${valStr}`);
     setForm({ ...form, notes: lines.join("\n") });
   }
 

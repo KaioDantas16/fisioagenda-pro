@@ -488,15 +488,47 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
 function VitalsTab({ patientId, vitals, onChange }: any) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ systolic: "", diastolic: "", heart_rate: "", respiratory_rate: "", temperature: "", spo2: "", weight: "", height: "", notes: "" });
-  const bmi = form.weight && form.height ? (Number(form.weight) / (Number(form.height) ** 2)).toFixed(2) : null;
+
+  const numParse = (val: string | number) => {
+    if (!val) return null;
+    let v = val.toString().replace(',', '.');
+    return Number(v);
+  };
+
+  let parsedW = numParse(form.weight);
+  let parsedH = numParse(form.height);
+  if (parsedH && parsedH > 3) parsedH = parsedH / 100;
+
+  const bmi = parsedW && parsedH ? (parsedW / (parsedH ** 2)).toFixed(2) : null;
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const num = (k: string) => (form[k] ? Number(form[k]) : null);
+    
+    let systolic = numParse(form.systolic);
+    let diastolic = numParse(form.diastolic);
+    let hr = numParse(form.heart_rate);
+    let rr = numParse(form.respiratory_rate);
+    let temp = numParse(form.temperature);
+    let spo2 = numParse(form.spo2);
+    let w = numParse(form.weight);
+    let h = numParse(form.height);
+
+    if (h && h > 3) h = h / 100;
+
+    if (systolic && (systolic < 30 || systolic > 300)) return toast.error("PA sistólica inválida (limite: 30-300)");
+    if (diastolic && (diastolic < 20 || diastolic > 200)) return toast.error("PA diastólica inválida (limite: 20-200)");
+    if (hr && (hr < 20 || hr > 300)) return toast.error("Frequência cardíaca inválida (limite: 20-300)");
+    if (rr && (rr < 5 || rr > 100)) return toast.error("Frequência respiratória inválida (limite: 5-100)");
+    if (temp && (temp < 30 || temp > 45)) return toast.error("Temperatura inválida (limite: 30-45)");
+    if (spo2 && (spo2 < 0 || spo2 > 100)) return toast.error("SpO2 inválida (limite: 0-100)");
+    if (w && w <= 0) return toast.error("Peso deve ser positivo");
+    if (h && h <= 0) return toast.error("Altura deve ser positiva");
+
     const { error } = await supabase.from("vital_signs").insert({
-      patient_id: patientId, systolic: num("systolic"), diastolic: num("diastolic"),
-      heart_rate: num("heart_rate"), respiratory_rate: num("respiratory_rate"),
-      temperature: num("temperature"), spo2: num("spo2"),
-      weight: num("weight"), height: num("height"), notes: form.notes || null,
+      patient_id: patientId, systolic, diastolic,
+      heart_rate: hr, respiratory_rate: rr,
+      temperature: temp, spo2,
+      weight: w, height: h, notes: form.notes || null,
     });
     if (error) return toast.error(error.message);
     toast.success("Sinais vitais registrados");
@@ -519,14 +551,14 @@ function VitalsTab({ patientId, vitals, onChange }: any) {
             <DialogHeader><DialogTitle>Sinais Vitais</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>PA Sistólica (mmHg)</Label><Input type="number" value={form.systolic} onChange={(e) => setForm({ ...form, systolic: e.target.value })} /></div>
-                <div><Label>PA Diastólica (mmHg)</Label><Input type="number" value={form.diastolic} onChange={(e) => setForm({ ...form, diastolic: e.target.value })} /></div>
-                <div><Label>FC (bpm)</Label><Input type="number" value={form.heart_rate} onChange={(e) => setForm({ ...form, heart_rate: e.target.value })} /></div>
-                <div><Label>FR (irpm)</Label><Input type="number" value={form.respiratory_rate} onChange={(e) => setForm({ ...form, respiratory_rate: e.target.value })} /></div>
-                <div><Label>Temperatura (°C)</Label><Input type="number" step="0.1" value={form.temperature} onChange={(e) => setForm({ ...form, temperature: e.target.value })} /></div>
-                <div><Label>SpO2 (%)</Label><Input type="number" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} /></div>
-                <div><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} /></div>
-                <div><Label>Altura (m)</Label><Input type="number" step="0.01" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} /></div>
+                <div><Label>PA Sistólica (mmHg)</Label><Input type="number" step="1" value={form.systolic} onChange={(e) => setForm({ ...form, systolic: e.target.value })} /></div>
+                <div><Label>PA Diastólica (mmHg)</Label><Input type="number" step="1" value={form.diastolic} onChange={(e) => setForm({ ...form, diastolic: e.target.value })} /></div>
+                <div><Label>FC (bpm)</Label><Input type="number" step="1" value={form.heart_rate} onChange={(e) => setForm({ ...form, heart_rate: e.target.value })} /></div>
+                <div><Label>FR (irpm)</Label><Input type="number" step="1" value={form.respiratory_rate} onChange={(e) => setForm({ ...form, respiratory_rate: e.target.value })} /></div>
+                <div><Label>Temperatura (°C)</Label><Input type="text" value={form.temperature} onChange={(e) => setForm({ ...form, temperature: e.target.value })} /></div>
+                <div><Label>SpO2 (%)</Label><Input type="number" step="1" value={form.spo2} onChange={(e) => setForm({ ...form, spo2: e.target.value })} /></div>
+                <div><Label>Peso (kg)</Label><Input type="text" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} /></div>
+                <div><Label>Altura (m ou cm)</Label><Input type="text" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} placeholder="Ex: 1.80 ou 180" /></div>
               </div>
               {bmi && <div className="bg-primary/10 rounded-xl p-3 text-sm"><span className="font-bold text-primary">IMC calculado:</span> {bmi} kg/m²</div>}
               <div><Label>Observações</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
