@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, UserPlus, FileText, Check } from "lucide-react";
 import { toast } from "sonner";
+import { SOAP_TEMPLATES } from "@/lib/soap-templates";
+import { BodyMap } from "@/components/clinical/BodyMap";
 
 export const Route = createFileRoute("/_authenticated/prontuario/novo")({
   head: () => ({ meta: [{ title: "Novo prontuário — FisioAgenda Pro" }] }),
@@ -38,7 +41,20 @@ function NovoProntuario() {
   // SOAP form
   const [pain, setPain] = useState([0]);
   const [soap, setSoap] = useState({ subjective: "", objective: "", assessment: "", plan: "" });
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  function handleApplyTemplate(templateName: string) {
+    const template = SOAP_TEMPLATES.find((t) => t.name === templateName);
+    if (!template) return;
+    setSoap({
+      subjective: template.subjective,
+      objective: template.objective,
+      assessment: template.assessment,
+      plan: template.plan,
+    });
+    toast.success(`Modelo "${template.name}" aplicado!`);
+  }
 
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
@@ -84,6 +100,7 @@ function NovoProntuario() {
       objective: soap.objective || null,
       assessment: soap.assessment || null,
       plan: soap.plan || null,
+      body_regions: selectedRegions,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -160,6 +177,26 @@ function NovoProntuario() {
         <div className="flex justify-between text-[11px] text-muted-foreground">
           <span>Sem dor</span><span>Moderada</span><span>Insuportável</span>
         </div>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <Label className="text-base font-display font-bold">Modelo de Prontuário</Label>
+        <p className="text-xs text-muted-foreground">Selecione um modelo clínico para pré-preencher a evolução (você poderá editá-la antes de salvar).</p>
+        <Select onValueChange={handleApplyTemplate}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Escolha um modelo anatômico..." />
+          </SelectTrigger>
+          <SelectContent>
+            {SOAP_TEMPLATES.map((t) => (
+              <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <Label className="text-base font-display font-bold">Mapa Corporal</Label>
+        <BodyMap selectedRegions={selectedRegions} onChange={setSelectedRegions} />
       </Card>
 
       <Card className="p-4 space-y-3">

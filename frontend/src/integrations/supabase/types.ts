@@ -635,6 +635,7 @@ export type Database = {
       records: {
         Row: {
           assessment: string | null
+          body_regions: string[] | null
           cid10: string | null
           created_at: string
           created_by: string | null
@@ -653,6 +654,7 @@ export type Database = {
         }
         Insert: {
           assessment?: string | null
+          body_regions?: string[] | null
           cid10?: string | null
           created_at?: string
           created_by?: string | null
@@ -671,6 +673,7 @@ export type Database = {
         }
         Update: {
           assessment?: string | null
+          body_regions?: string[] | null
           cid10?: string | null
           created_at?: string
           created_by?: string | null

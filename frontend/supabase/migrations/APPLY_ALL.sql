@@ -160,6 +160,9 @@ BEGIN
   END IF;
 END $$;
 
+-- 6) Coluna body_regions na tabela records
+ALTER TABLE public.records ADD COLUMN IF NOT EXISTS body_regions TEXT[] DEFAULT '{}';
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Pós-migrations: rodar este SELECT para verificar
 -- SELECT 'session_packages' AS t, count(*) FROM public.session_packages

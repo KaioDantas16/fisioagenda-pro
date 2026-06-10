@@ -538,3 +538,69 @@ export async function downloadClinicalEvolutionPDF(args: { patient: any; records
   paginate(doc);
   doc.save(`evolucao-${args.patient.full_name.replace(/\s+/g, "_")}.pdf`);
 }
+
+// =============================================================================
+// 8) PRONTUÁRIO INDIVIDUAL (SOAP + MAPA CORPORAL)
+// =============================================================================
+export async function downloadProntuarioIndividualPDF(args: {
+  patient: any;
+  record: any;
+}) {
+  const config = await resolvePdfConfig();
+  const TITLE = "Evolução Diária (SOAP)";
+  const doc = newDoc();
+  withChrome(doc, TITLE, config);
+  let y = 36;
+  
+  // Cabeçalho do Paciente
+  y = patientHeader(doc, args.patient, y);
+  y += 4;
+  
+  // Data e Informações Gerais em Tabela
+  const r = args.record;
+  const generalData = [
+    ["Data do Atendimento", r.record_date ? format(new Date(r.record_date + "T12:00:00"), "dd/MM/yyyy") : "—"],
+    ["Escala de Dor (EVA)", r.pain_scale !== null && r.pain_scale !== undefined ? `${r.pain_scale}/10` : "—"],
+    ["Escore de Evolução", r.evolution_score !== null && r.evolution_score !== undefined ? `${r.evolution_score}/10` : "—"],
+    ["CID-10", r.cid10 || "—"],
+    ["Localização da dor (Relatada)", r.pain_location_text || "—"],
+    ["Regiões Marcadas (Mapa)", r.body_regions && r.body_regions.length > 0 ? r.body_regions.map((reg: string) => reg.replace(/ \((Anterior|Posterior)\)/, "")).join(", ") : "—"],
+  ];
+  
+  autoTable(doc, {
+    startY: y,
+    body: generalData,
+    styles: { fontSize: 9, cellPadding: 2.5 },
+    columnStyles: { 0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 50 } },
+    didDrawPage: () => withChrome(doc, TITLE, config)
+  });
+  
+  y = (doc as any).lastAutoTable.finalY + 6;
+  y = pageGuard(doc, y, TITLE, config, 40);
+  
+  // Detalhes SOAP em tabela
+  sectionTitle(doc, "Evolução SOAP", y, config);
+  y += 4;
+  
+  const soapData = [
+    ["S — Subjetivo", r.subjective || "—"],
+    ["O — Objetivo", r.objective || "—"],
+    ["A — Avaliação", r.assessment || "—"],
+    ["P — Plano", r.plan || "—"],
+  ];
+  
+  autoTable(doc, {
+    startY: y,
+    body: soapData,
+    styles: { fontSize: 9, cellPadding: 3.5, overflow: "linebreak" },
+    columnStyles: { 
+      0: { fontStyle: "bold", fillColor: [240, 247, 255], cellWidth: 35 },
+      1: { cellWidth: 145 }
+    },
+    didDrawPage: () => withChrome(doc, TITLE, config)
+  });
+  
+  paginate(doc);
+  const formattedDate = r.record_date || format(new Date(), "yyyy-MM-dd");
+  doc.save(`evolucao-${args.patient.full_name.replace(/\s+/g, "_")}-${formattedDate}.pdf`);
+}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // useServerFn replaced by direct async call (Supabase-only architecture)
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,13 +16,15 @@ import { ArrowLeft, MessageCircle, Plus, FileDown, Trash2, KeyRound, Copy, Shiel
 import { toast } from "sonner";
 import { CLASSIFICATIONS } from "@/lib/brand";
 import { MessageModal } from "@/components/MessageModal";
-import { downloadProntuarioPDF, downloadFrequenciaPDF } from "@/lib/pdf";
+import { downloadProntuarioPDF, downloadFrequenciaPDF, downloadProntuarioIndividualPDF } from "@/lib/pdf";
 import { format } from "date-fns";
 import { createPatientPortalAccess } from "@/lib/patient-portal.functions";
 import { COMMON_CID10 } from "@/lib/clinical-constants";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AnamneseTab } from "@/components/clinical/AnamneseTab";
 import { FunctionalTab } from "@/components/clinical/FunctionalTab";
+import { BodyMap } from "@/components/clinical/BodyMap";
+import { SOAP_TEMPLATES } from "@/lib/soap-templates";
 import { PainMapTab } from "@/components/clinical/PainMapTab";
 import { RomTab } from "@/components/clinical/RomTab";
 import { TestsTab } from "@/components/clinical/TestsTab";
@@ -156,7 +158,9 @@ function PatientProfile() {
           <TabsTrigger value="packages">Pacotes</TabsTrigger>
           <TabsTrigger value="attachments">Anexos</TabsTrigger>
         </TabsList>
-        <TabsContent value="records" className="mt-4"><RecordsTab patientId={id} records={records} onChange={invAll} /></TabsContent>
+        <TabsContent value="records" className="mt-4">
+          <RecordsTab patientId={id} patient={patient} records={records} onChange={invAll} />
+        </TabsContent>
         <TabsContent value="anamnese" className="mt-4"><AnamneseTab patientId={id} patient={patient} /></TabsContent>
         <TabsContent value="functional" className="mt-4"><FunctionalTab patientId={id} /></TabsContent>
         <TabsContent value="painmap" className="mt-4"><PainMapTab patientId={id} /></TabsContent>
@@ -184,17 +188,42 @@ function painColor(v: number) {
   return "bg-destructive";
 }
 
-function RecordsTab({ patientId, records, onChange }: any) {
+function RecordsTab({ patientId, patient, records, onChange }: any) {
   const [open, setOpen] = useState(false);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const initial = {
     record_date: format(new Date(), "yyyy-MM-dd"),
     subjective: "", objective: "", assessment: "", plan: "", pain_scale: 0,
     cid10: "", pain_location_text: "", evolution_score: 5,
   };
   const [form, setForm] = useState<any>(initial);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedRegions([]);
+    }
+  }, [open]);
+
+  function handleApplyTemplate(templateName: string) {
+    const template = SOAP_TEMPLATES.find((t) => t.name === templateName);
+    if (!template) return;
+    setForm((prev: any) => ({
+      ...prev,
+      subjective: template.subjective,
+      objective: template.objective,
+      assessment: template.assessment,
+      plan: template.plan,
+    }));
+    toast.success(`Modelo "${template.name}" aplicado!`);
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase.from("records").insert({ ...form, patient_id: patientId } as any);
+    const { error } = await supabase.from("records").insert({
+      ...form,
+      patient_id: patientId,
+      body_regions: selectedRegions,
+    } as any);
     if (error) return toast.error(error.message);
     toast.success("Prontuário salvo");
     setOpen(false); setForm(initial);
@@ -217,6 +246,23 @@ function RecordsTab({ patientId, records, onChange }: any) {
               <div>
                 <Label>Data</Label>
                 <Input type="date" value={form.record_date} onChange={(e) => setForm({ ...form, record_date: e.target.value })} />
+              </div>
+              <div>
+                <Label className="font-bold">Modelo de Prontuário</Label>
+                <p className="text-[11px] text-muted-foreground mb-1">Selecione um modelo clínico para pré-preencher a evolução (você poderá editá-la antes de salvar).</p>
+                <Select onValueChange={handleApplyTemplate}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Escolha um modelo anatômico..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOAP_TEMPLATES.map((t) => (
+                      <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="py-1">
+                <BodyMap selectedRegions={selectedRegions} onChange={setSelectedRegions} />
               </div>
               <div>
                 <Label className="font-bold text-primary">S — Subjetivo</Label>
@@ -280,6 +326,15 @@ function RecordsTab({ patientId, records, onChange }: any) {
               {typeof r.pain_scale === "number" && (
                 <span className={`text-xs px-2 py-0.5 rounded text-white font-bold ${painColor(r.pain_scale)}`}>EVA {r.pain_scale}/10</span>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary h-7 w-7"
+                title="Baixar PDF do prontuário"
+                onClick={() => downloadProntuarioIndividualPDF({ patient, record: r })}
+              >
+                <FileDown className="h-3.5 w-3.5" />
+              </Button>
               <ConfirmDialog
                 trigger={<Button variant="ghost" size="icon" className="text-destructive h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>}
                 title="Excluir prontuário?"
@@ -289,8 +344,21 @@ function RecordsTab({ patientId, records, onChange }: any) {
                 onConfirm={() => remove(r.id)} />
             </div>
           </div>
-          {(r.cid10 || r.pain_location_text) && (
-            <p className="text-xs text-muted-foreground">{r.cid10 && <span className="font-bold">CID {r.cid10}</span>}{r.cid10 && r.pain_location_text && " · "}{r.pain_location_text}</p>
+          {(r.cid10 || r.pain_location_text || (r.body_regions && r.body_regions.length > 0)) && (
+            <div className="text-xs text-muted-foreground space-y-1 border-b pb-2 mb-2">
+              {r.cid10 && <p><span className="font-bold">CID-10:</span> {r.cid10}</p>}
+              {r.pain_location_text && <p><span className="font-bold">Localização da dor:</span> {r.pain_location_text}</p>}
+              {r.body_regions && r.body_regions.length > 0 && (
+                <div className="flex flex-wrap gap-1 items-center mt-1">
+                  <span className="font-bold">Regiões marcadas:</span>
+                  {r.body_regions.map((reg: string) => (
+                    <span key={reg} className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20 text-[10px] font-medium">
+                      {reg}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           <SoapField label="S" text={r.subjective} />
           <SoapField label="O" text={r.objective} />
