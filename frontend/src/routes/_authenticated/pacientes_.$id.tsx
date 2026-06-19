@@ -12,9 +12,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MessageCircle, Plus, FileDown, Trash2, KeyRound, Copy, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MessageCircle, Plus, FileDown, Trash2, KeyRound, Copy, ShieldCheck, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { CLASSIFICATIONS } from "@/lib/brand";
+import { maskCPF } from "@/lib/cpf";
 import { MessageModal } from "@/components/MessageModal";
 import { downloadProntuarioPDF, downloadFrequenciaPDF, downloadProntuarioIndividualPDF } from "@/lib/pdf";
 import { format } from "date-fns";
@@ -121,6 +122,7 @@ function PatientProfile() {
         <MessageModal patientName={patient.full_name} phone={patient.phone} email={patient.email}
           trigger={<Button variant="outline" size="icon" title="Mensagem"><MessageCircle className="h-4 w-4" /></Button>} />
         <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+        <EditPatientModal patient={patient} onChange={() => { qc.invalidateQueries({ queryKey: ["patient", id] }); qc.invalidateQueries({ queryKey: ["patients"] }); }} />
         <DeletePatientButton patientId={id} patientName={patient.full_name} />
       </div>
 
@@ -801,5 +803,169 @@ function DeletePatientButton({ patientId, patientName }: { patientId: string; pa
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function EditPatientModal({ patient, onChange }: { patient: any; onChange: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(patient);
+
+  useEffect(() => {
+    if (open) setForm(patient);
+  }, [open, patient]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (form.full_name?.trim().length < 2) return toast.error("Informe o nome completo");
+
+    const payload = {
+      full_name: form.full_name,
+      phone: form.phone || null,
+      email: form.email || null,
+      birth_date: form.birth_date || null,
+      cpf: form.cpf || null,
+      rg: form.rg || null,
+      gender: form.gender || null,
+      insurance: form.insurance || null,
+      profissao: form.profissao || null,
+      escolaridade: form.escolaridade || null,
+      estado_civil: form.estado_civil || null,
+      cep: form.cep || null,
+      address: form.address || null,
+      doctor_name: form.doctor_name || null,
+      insurance_plan: form.insurance_plan || null,
+      sessions_authorized: form.sessions_authorized ? Number(form.sessions_authorized) : null,
+      classification: form.classification || "estavel",
+      notes: form.notes || null,
+    };
+
+    const { error } = await supabase.from("patients").update(payload).eq("id", patient.id);
+    if (error) return toast.error(error.message);
+
+    toast.success("Paciente atualizado");
+    setOpen(false);
+    onChange();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" title="Editar paciente"><Edit2 className="h-4 w-4" /></Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar paciente</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={save} className="space-y-3">
+          <div>
+            <Label>Nome completo *</Label>
+            <Input value={form.full_name || ""} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Telefone</Label>
+              <Input value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(64) 9..." />
+            </div>
+            <div>
+              <Label>Nascimento</Label>
+              <Input type="date" value={form.birth_date || ""} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>CPF</Label>
+              <Input value={form.cpf || ""} onChange={(e) => setForm({ ...form, cpf: maskCPF(e.target.value) })} placeholder="000.000.000-00" inputMode="numeric" />
+            </div>
+            <div>
+              <Label>Gênero</Label>
+              <Select value={form.gender || ""} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="feminino">Feminino</SelectItem>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>Convênio/Plano</Label>
+              <Input value={form.insurance || ""} onChange={(e) => setForm({ ...form, insurance: e.target.value })} placeholder="Particular" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>RG</Label>
+              <Input value={form.rg || ""} onChange={(e) => setForm({ ...form, rg: e.target.value })} />
+            </div>
+            <div>
+              <Label>Estado civil</Label>
+              <Select value={form.estado_civil || ""} onValueChange={(v) => setForm({ ...form, estado_civil: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Profissão</Label>
+              <Input value={form.profissao || ""} onChange={(e) => setForm({ ...form, profissao: e.target.value })} />
+            </div>
+            <div>
+              <Label>Escolaridade</Label>
+              <Select value={form.escolaridade || ""} onValueChange={(v) => setForm({ ...form, escolaridade: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {["Fundamental", "Médio", "Superior", "Pós-graduação"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>CEP</Label>
+              <Input value={form.cep || ""} onChange={(e) => setForm({ ...form, cep: e.target.value })} placeholder="00000-000" />
+            </div>
+            <div className="col-span-2">
+              <Label>Endereço</Label>
+              <Input value={form.address || ""} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Médico solicitante</Label>
+              <Input value={form.doctor_name || ""} onChange={(e) => setForm({ ...form, doctor_name: e.target.value })} placeholder="Nome + CRM" />
+            </div>
+            <div>
+              <Label>Sessões autorizadas</Label>
+              <Input type="number" value={form.sessions_authorized || ""} onChange={(e) => setForm({ ...form, sessions_authorized: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <Label>Classificação clínica</Label>
+            <Select value={form.classification || "estavel"} onValueChange={(v) => setForm({ ...form, classification: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(CLASSIFICATIONS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Observações</Label>
+            <Textarea value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} />
+          </div>
+          <Button type="submit" className="w-full gradient-brand text-white">Salvar</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

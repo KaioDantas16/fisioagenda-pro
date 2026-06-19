@@ -6,6 +6,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 
+export const normalizeOptionalText = (value?: string | null) => {
+  const text = value?.trim();
+  return text && text.length > 0 ? text : null;
+};
+
 // =============================================================================
 // Cores dinâmicas associadas a cada tema para o PDF
 // =============================================================================
@@ -47,7 +52,7 @@ interface PdfConfig {
   phone: string;
   instagram: string;
   owner: string;
-  crefito: string;
+  crefito: string | null;
   logoBase64: string | null;
 }
 
@@ -80,7 +85,7 @@ async function resolvePdfConfig(): Promise<PdfConfig> {
     phone: settings?.phone || CLINIC.phone,
     instagram: settings?.instagram || CLINIC.instagram,
     owner: settings?.professional_name || CLINIC.owner,
-    crefito: settings?.crefito || CLINIC.crefito,
+    crefito: normalizeOptionalText(settings?.crefito),
     logoBase64
   };
 }
@@ -150,7 +155,8 @@ function footer(doc: jsPDF, config: PdfConfig) {
   
   // Se o nome completo for razoavelmente curto, usa ele no rodapé. Senão, usa a abreviação.
   const footerName = config.clinicName.length < 30 ? config.clinicName : config.clinicShortName;
-  const line = `${footerName} · ${config.owner} · ${config.crefito} · Gerado em ${now}`;
+  const footerParts = [footerName, config.owner, config.crefito, `Gerado em ${now}`].filter(Boolean);
+  const line = footerParts.join(" · ");
   doc.text(line, 14, h - 9);
 }
 

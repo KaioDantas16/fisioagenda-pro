@@ -25,7 +25,6 @@ export const CLINIC = {
   phone: "(64) 99298-8185",
   instagram: "@lenilson_gouveia",
   owner: "Lenilson Gouveia de Jesus",
-  crefito: "CREFITO-9",
 };
 
 export const SERVICES = [

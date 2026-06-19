@@ -157,6 +157,13 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
     }
   }
 
+  function safeFormatDate(dateStr: string | null | undefined, dateFormat: string) {
+    if (!dateStr) return "—";
+    const dateObj = new Date(dateStr.includes("T") ? dateStr : dateStr + "T12:00:00");
+    if (isNaN(dateObj.getTime())) return "—";
+    return format(dateObj, dateFormat, { locale: ptBR });
+  }
+
   return (
     <div className="space-y-6">
       {/* Cards de Métricas Financeiras */}
@@ -220,7 +227,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
                   return (
                     <tr key={a.id} className="hover:bg-muted/40 transition-colors">
                       <td className="p-3 whitespace-nowrap font-medium">
-                        {format(new Date(a.starts_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {safeFormatDate(a.starts_at, "dd/MM/yyyy HH:mm")}
                       </td>
                       <td className="p-3">{a.service || "—"}</td>
                       <td className="p-3 font-semibold">{a.price ? fmtBRL(a.price) : "R$ 0,00"}</td>
@@ -232,7 +239,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
                       <td className="p-3">{methodLabel}</td>
                       <td className="p-3">
                         {a.payment_status === "pago" && a.payment_date 
-                          ? format(new Date(a.payment_date + "T12:00:00"), "dd/MM/yyyy") 
+                          ? safeFormatDate(a.payment_date, "dd/MM/yyyy") 
                           : "—"}
                       </td>
                       <td className="p-3 text-right space-x-1 whitespace-nowrap">
@@ -290,7 +297,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
               <div>
                 <Label>Método de Pagamento</Label>
                 <Select
-                  value={form.payment_method}
+                  value={form.payment_method || undefined}
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -307,7 +314,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
               <div>
                 <Label>Status de Pagamento</Label>
                 <Select
-                  value={form.payment_status}
+                  value={form.payment_status || "pendente"}
                   onValueChange={(v) => setForm({ ...form, payment_status: v })}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -324,7 +331,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
                   <Label>Data de Recebimento</Label>
                   <Input
                     type="date"
-                    value={form.payment_date}
+                    value={form.payment_date || ""}
                     onChange={(e) => setForm({ ...form, payment_date: e.target.value })}
                     required
                   />
@@ -336,7 +343,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
               <Label>Observação Financeira</Label>
               <Textarea
                 rows={2}
-                value={form.financial_notes}
+                value={form.financial_notes || ""}
                 onChange={(e) => setForm({ ...form, financial_notes: e.target.value })}
                 placeholder="Ex: Pago via Pix integralmente"
               />
