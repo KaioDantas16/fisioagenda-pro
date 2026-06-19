@@ -225,14 +225,29 @@ function Dashboard() {
     enabled: !!therapistId,
   });
 
+  const { data: clinicSettings } = useQuery({
+    queryKey: ["clinic_settings", therapistId],
+    queryFn: async () => {
+      if (!therapistId) return null;
+      const { data } = await supabase.from("clinic_settings").select("*").maybeSingle();
+      return data;
+    },
+    enabled: !!therapistId,
+  });
+
+  const professionalName = clinicSettings?.professional_name || CLINIC.owner;
+  const crefitoText = clinicSettings?.crefito && clinicSettings.crefito.trim().length > 0 
+    ? clinicSettings.crefito.trim() + " · " 
+    : "";
+
   return (
     <div className="space-y-6">
       <div className="gradient-brand rounded-2xl p-6 lg:p-8 text-white shadow-lg-brand flex flex-col sm:flex-row items-center gap-6">
-        <img src={ownerPhotoUrl} alt={CLINIC.owner} className="h-20 w-20 lg:h-24 lg:w-24 rounded-full object-cover ring-4 ring-white/30" />
+        <img src={ownerPhotoUrl} alt={professionalName} className="h-20 w-20 lg:h-24 lg:w-24 rounded-full object-cover ring-4 ring-white/30" />
         <div className="text-center sm:text-left">
           <p className="text-sm opacity-90">Bem-vindo de volta,</p>
-          <h2 className="text-2xl lg:text-3xl text-white">{CLINIC.owner}</h2>
-          <p className="text-sm opacity-90 mt-1">{CLINIC.crefito} · {format(today, "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
+          <h2 className="text-2xl lg:text-3xl text-white">{professionalName}</h2>
+          <p className="text-sm opacity-90 mt-1">{crefitoText}{format(today, "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
         </div>
       </div>
 

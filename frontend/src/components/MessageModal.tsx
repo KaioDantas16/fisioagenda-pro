@@ -15,10 +15,10 @@ type Props = {
 };
 
 const TEMPLATES = [
-  { label: "Lembrete de sessão", text: (n: string) => `Olá ${n}, passando para lembrar do nosso atendimento. Por favor, confirme sua presença. — Lenilson, CREFITO-9` },
-  { label: "Confirmação", text: (n: string) => `Olá ${n}, sua sessão foi confirmada. Nos vemos em breve! — Lenilson, CREFITO-9` },
-  { label: "Agradecimento", text: (n: string) => `Olá ${n}, obrigado pela presença na sessão de hoje. Lembre-se das orientações combinadas. — Lenilson, CREFITO-9` },
-  { label: "Reagendamento", text: (n: string) => `Olá ${n}, preciso reagendar nossa sessão. Pode me passar uma nova disponibilidade? — Lenilson, CREFITO-9` },
+  { label: "Lembrete de sessão", text: (n: string) => `Olá ${n}, passando para lembrar do nosso atendimento. Por favor, confirme sua presença.` },
+  { label: "Confirmação", text: (n: string) => `Olá ${n}, sua sessão foi confirmada. Nos vemos em breve!` },
+  { label: "Agradecimento", text: (n: string) => `Olá ${n}, obrigado pela presença na sessão de hoje. Lembre-se das orientações combinadas.` },
+  { label: "Reagendamento", text: (n: string) => `Olá ${n}, preciso reagendar nossa sessão. Pode me passar uma nova disponibilidade?` },
 ];
 
 export function MessageModal({ patientName, phone, email, trigger }: Props) {

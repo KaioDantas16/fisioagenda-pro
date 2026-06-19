@@ -150,7 +150,8 @@ function footer(doc: jsPDF, config: PdfConfig) {
   
   // Se o nome completo for razoavelmente curto, usa ele no rodapé. Senão, usa a abreviação.
   const footerName = config.clinicName.length < 30 ? config.clinicName : config.clinicShortName;
-  const line = `${footerName} · ${config.owner} · ${config.crefito} · Gerado em ${now}`;
+  const footerParts = [footerName, config.owner, config.crefito, `Gerado em ${now}`].filter(Boolean);
+  const line = footerParts.join(" · ");
   doc.text(line, 14, h - 9);
 }
 
