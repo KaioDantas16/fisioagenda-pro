@@ -6,6 +6,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 
+export const normalizeOptionalText = (value?: string | null) => {
+  const text = value?.trim();
+  return text && text.length > 0 ? text : null;
+};
+
 // =============================================================================
 // Cores dinâmicas associadas a cada tema para o PDF
 // =============================================================================
@@ -47,7 +52,7 @@ interface PdfConfig {
   phone: string;
   instagram: string;
   owner: string;
-  crefito: string;
+  crefito: string | null;
   logoBase64: string | null;
 }
 
@@ -80,7 +85,7 @@ async function resolvePdfConfig(): Promise<PdfConfig> {
     phone: settings?.phone || CLINIC.phone,
     instagram: settings?.instagram || CLINIC.instagram,
     owner: settings?.professional_name || CLINIC.owner,
-    crefito: settings?.crefito || CLINIC.crefito,
+    crefito: normalizeOptionalText(settings?.crefito),
     logoBase64
   };
 }

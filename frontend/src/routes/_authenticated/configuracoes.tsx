@@ -82,8 +82,8 @@ function ClinicTab() {
         address: "Caldas Novas, GO",
         phone: "(64) 9 0000-0000",
         instagram: "@lenilson_gouveia",
-        professional_name: "Lenilson Gouveia de Jesus",
-        crefito: "CREFITO-9",
+        professional_name: "Fisioterapeuta",
+        crefito: "",
         specialties: ["Fisioterapia ortopédica", "Fisioterapia neurológica", "RPG", "Pilates clínico"],
         theme: "default"
       });
@@ -347,8 +347,8 @@ function ThemeTab() {
         therapist_id: therapistId,
         theme: key,
         name: clinic?.name || "Centro Especializado Equilíbrio e Movimento",
-        professional_name: clinic?.professional_name || "Lenilson Gouveia de Jesus",
-        crefito: clinic?.crefito || "CREFITO-9",
+        professional_name: clinic?.professional_name || "Fisioterapeuta",
+        crefito: clinic?.crefito || "",
         specialties: clinic?.specialties || ["Fisioterapia ortopédica", "Fisioterapia neurológica", "RPG", "Pilates clínico"],
       }, {
         onConflict: "therapist_id"
