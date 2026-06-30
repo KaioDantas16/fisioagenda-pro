@@ -145,7 +145,7 @@ function PortalPaciente() {
                       try {
                         downloadSessionReceiptPDF({ patient, session: s });
                       } catch (err) {
-                        console.error("Não foi possível gerar o comprovante da sessão (dados sanitizados)");
+                        console.error("Operation failed", { operation: "session-receipt-pdf", module: "portal-paciente", timestamp: new Date().toISOString() });
                         toast.error("Não foi possível gerar o comprovante");
                       }
                     }}>
