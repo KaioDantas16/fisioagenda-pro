@@ -38,9 +38,9 @@ async function urlToBase64(url: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Erro ao converter imagem para base64:", error);
-    return null;
+    console.error("Erro ao converter imagem para base64 (dados sanitizados)");
   }
+  return null;
 }
 
 interface PdfConfig {
@@ -62,7 +62,7 @@ async function resolvePdfConfig(): Promise<PdfConfig> {
     const { data } = await supabase.from("clinic_settings").select("*").maybeSingle();
     settings = data;
   } catch (e) {
-    console.error("Erro ao obter clinic_settings para PDF:", e);
+    console.error("Erro ao obter clinic_settings para PDF (dados sanitizados)");
   }
 
   const themeKey = settings?.theme || "default";
@@ -112,7 +112,7 @@ function header(doc: jsPDF, title: string, config: PdfConfig) {
       doc.addImage(config.logoBase64, "PNG", 14, 5, 18, 18);
       textX = 36;
     } catch (e) {
-      console.error("Erro ao adicionar logo ao PDF:", e);
+      console.error("Erro ao adicionar logo ao PDF (dados sanitizados)");
     }
   }
 
@@ -201,7 +201,9 @@ const fmtDate = (d: any) => {
     if (!isNaN(dateObj.getTime())) {
       return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Formato de data inválido durante a exportação do PDF (dados sanitizados).");
+  }
   return "—";
 };
 const fmtDateTime = (d: any) => d ? format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
