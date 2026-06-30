@@ -44,6 +44,8 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
   const qc = useQueryClient();
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [open, setOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     price: "",
     payment_method: "",
@@ -79,6 +81,8 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
 
   // Marcar agendamento como pago rapidamente
   async function handleMarkAsPaid(appt: any) {
+    if (isPaying) return;
+    setIsPaying(true);
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const { error } = await supabase
       .from("appointments")
@@ -89,11 +93,13 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
       .eq("id", appt.id);
 
     if (error) {
+      setIsPaying(false);
       toast.error(`Erro ao registrar pagamento: ${error.message}`);
       return;
     }
 
     toast.success("Pagamento registrado com sucesso ✓");
+    setIsPaying(false);
     refetch();
     onChange();
     qc.invalidateQueries({ queryKey: ["appointments-finance", patientId] });
@@ -116,8 +122,9 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
   // Salvar alterações financeiras do agendamento
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingAppointment) return;
+    if (!editingAppointment || isSubmitting) return;
 
+    setIsSubmitting(true);
     const priceNum = form.price ? Number(form.price) : null;
     const { error } = await supabase
       .from("appointments")
@@ -131,11 +138,13 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
       .eq("id", editingAppointment.id);
 
     if (error) {
+      setIsSubmitting(false);
       toast.error(`Erro ao salvar alterações: ${error.message}`);
       return;
     }
 
     toast.success("Financeiro do agendamento atualizado ✓");
+    setIsSubmitting(false);
     setOpen(false);
     setEditingAppointment(null);
     refetch();
@@ -248,6 +257,7 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleMarkAsPaid(a)}
+                            disabled={isPaying}
                             className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900 h-8 text-xs font-medium"
                           >
                             Marcar Pago
@@ -349,7 +359,9 @@ export function FinanceTab({ patientId, patient, onChange }: FinanceTabProps) {
               />
             </div>
 
-            <Button type="submit" className="w-full gradient-brand text-white">Salvar Alterações</Button>
+            <Button type="submit" className="w-full gradient-brand text-white" disabled={isSubmitting}>
+              Salvar Alterações
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

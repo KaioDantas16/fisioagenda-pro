@@ -83,18 +83,27 @@ function PatientProfile() {
   const cls = CLASSIFICATIONS[patient.classification] ?? CLASSIFICATIONS.estavel;
 
   async function exportPDF() {
-    const [an, fa, pm, rm, st, pe] = await Promise.all([
-      (supabase.from as any)("anamnese").select("*").eq("patient_id", id).maybeSingle(),
-      (supabase.from as any)("functional_assessment").select("*").eq("patient_id", id),
-      (supabase.from as any)("pain_map_entries").select("*").eq("patient_id", id),
-      (supabase.from as any)("rom_measurements").select("*").eq("patient_id", id),
-      (supabase.from as any)("special_tests").select("*").eq("patient_id", id),
-      (supabase.from as any)("perimetry").select("*").eq("patient_id", id),
-    ]);
+    const { data: exportData, error } = await supabase.rpc("get_patient_export_data", { _patient_id: id });
+    
+    if (error || !exportData) {
+      toast.error("Erro ao obter dados do prontuário");
+      return;
+    }
+    
+    interface ExportData {
+      anamnese: any;
+      functional: any[];
+      pain_map: any[];
+      rom: any[];
+      tests: any[];
+      perimetry: any[];
+    }
+    const { anamnese, functional, pain_map, rom, tests, perimetry } = exportData as ExportData;
+
     downloadProntuarioPDF({
       patient, records, vitals, sessions,
-      anamnese: an.data, functional: fa.data ?? [], painMap: pm.data ?? [],
-      rom: rm.data ?? [], tests: st.data ?? [], perimetry: pe.data ?? [],
+      anamnese: anamnese, functional: functional ?? [], painMap: pain_map ?? [],
+      rom: rom ?? [], tests: tests ?? [], perimetry: perimetry ?? [],
     });
   }
   function exportFrequencia() {
@@ -390,12 +399,15 @@ function SoapField({ label, text }: { label: string; text?: string | null }) {
 
 function SessionsTab({ patientId, patient, sessions, onChange }: any) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     starts_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     duration_minutes: 60, procedure: "", price: "", payment_method: "", status: "agendado", notes: "",
   });
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     const { error } = await supabase.from("sessions").insert({
       patient_id: patientId,
       starts_at: new Date(form.starts_at).toISOString(),
@@ -406,6 +418,7 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
       status: form.status,
       notes: form.notes || null,
     });
+    setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Sessão registrada");
     setOpen(false);
@@ -461,7 +474,9 @@ function SessionsTab({ patientId, patient, sessions, onChange }: any) {
                 </div>
               </div>
               <div><Label>Observações</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <Button type="submit" className="w-full gradient-brand text-white">Salvar</Button>
+              <Button type="submit" className="w-full gradient-brand text-white" disabled={busy}>
+                {busy ? "Salvando..." : "Salvar"}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
