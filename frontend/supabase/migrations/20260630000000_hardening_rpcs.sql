@@ -1,7 +1,8 @@
-CREATE OR REPLACE FUNCTION get_patient_export_data(_patient_id uuid)
+CREATE OR REPLACE FUNCTION public.get_patient_export_data(_patient_id uuid)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY INVOKER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   res json;
@@ -20,7 +21,7 @@ BEGIN
         'medications', medications,
         'habits', habits,
         'vital_signs', vital_signs
-      ) FROM anamnese WHERE patient_id = _patient_id LIMIT 1
+      ) FROM public.anamnese WHERE patient_id = _patient_id LIMIT 1
     ),
     'functional', COALESCE((
       SELECT json_agg(
@@ -33,7 +34,7 @@ BEGIN
           'limitations', limitations,
           'assistive_devices', assistive_devices
         )
-      ) FROM functional_assessment WHERE patient_id = _patient_id
+      ) FROM public.functional_assessment WHERE patient_id = _patient_id
     ), '[]'::json),
     'pain_map', COALESCE((
       SELECT json_agg(
@@ -46,7 +47,7 @@ BEGIN
           'body_part', body_part,
           'description', description
         )
-      ) FROM pain_map_entries WHERE patient_id = _patient_id
+      ) FROM public.pain_map_entries WHERE patient_id = _patient_id
     ), '[]'::json),
     'rom', COALESCE((
       SELECT json_agg(
@@ -60,7 +61,7 @@ BEGIN
           'pain_level', pain_level,
           'observations', observations
         )
-      ) FROM rom_measurements WHERE patient_id = _patient_id
+      ) FROM public.rom_measurements WHERE patient_id = _patient_id
     ), '[]'::json),
     'tests', COALESCE((
       SELECT json_agg(
@@ -72,7 +73,7 @@ BEGIN
           'details', details,
           'positive', positive
         )
-      ) FROM special_tests WHERE patient_id = _patient_id
+      ) FROM public.special_tests WHERE patient_id = _patient_id
     ), '[]'::json),
     'perimetry', COALESCE((
       SELECT json_agg(
@@ -85,9 +86,13 @@ BEGIN
           'left_measure', left_measure,
           'difference', difference
         )
-      ) FROM perimetry WHERE patient_id = _patient_id
+      ) FROM public.perimetry WHERE patient_id = _patient_id
     ), '[]'::json)
   ) INTO res;
   RETURN res;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.get_patient_export_data(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_patient_export_data(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_patient_export_data(uuid) TO authenticated;
