@@ -1020,6 +1020,17 @@ export type Database = {
     }
     Functions: {
       current_patient_id: { Args: never; Returns: string }
+      get_patient_export_data: {
+        Args: { _patient_id: string }
+        Returns: {
+          anamnese?: Record<string, any> | null
+          functional?: any[] | null
+          pain_map?: any[] | null
+          rom?: any[] | null
+          tests?: any[] | null
+          perimetry?: any[] | null
+        }
+      }
       delete_patient_cascade: {
         Args: { _patient_id: string }
         Returns: undefined

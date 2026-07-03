@@ -83,23 +83,14 @@ function PatientProfile() {
   const cls = CLASSIFICATIONS[patient.classification] ?? CLASSIFICATIONS.estavel;
 
   async function exportPDF() {
-    // @ts-expect-error types mismatch
     const { data: exportData, error } = await supabase.rpc("get_patient_export_data", { _patient_id: id });
     
     if (error || !exportData) {
       toast.error("Erro ao obter dados do prontuário");
       return;
     }
-    
-    interface ExportData {
-      anamnese: any;
-      functional: any[];
-      pain_map: any[];
-      rom: any[];
-      tests: any[];
-      perimetry: any[];
-    }
-    const { anamnese, functional, pain_map, rom, tests, perimetry } = exportData as ExportData;
+
+    const { anamnese, functional, pain_map, rom, tests, perimetry } = exportData;
 
     downloadProntuarioPDF({
       patient, records, vitals, sessions,
