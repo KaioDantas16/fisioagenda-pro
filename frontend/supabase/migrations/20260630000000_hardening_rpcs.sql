@@ -6,8 +6,32 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   res json;
+  _visible_patient_id uuid;
+  _visible_patient_full_name text;
 BEGIN
+  -- This SECURITY INVOKER lookup is intentionally subject to patient RLS.
+  SELECT id, full_name
+  INTO _visible_patient_id, _visible_patient_full_name
+  FROM public.patients
+  WHERE id = _patient_id;
+
+  IF _visible_patient_id IS NULL THEN
+    RETURN json_build_object(
+      'patient', null,
+      'anamnese', null,
+      'functional', '[]'::json,
+      'pain_map', '[]'::json,
+      'rom', '[]'::json,
+      'tests', '[]'::json,
+      'perimetry', '[]'::json
+    );
+  END IF;
+
   SELECT json_build_object(
+    'patient', json_build_object(
+      'id', _visible_patient_id,
+      'full_name', _visible_patient_full_name
+    ),
     'anamnese', (
       SELECT json_build_object(
         'id', id,
@@ -93,6 +117,7 @@ BEGIN
       ) FROM public.perimetry WHERE patient_id = _patient_id
     ), '[]'::json)
   ) INTO res;
+  
   RETURN res;
 END;
 $$;

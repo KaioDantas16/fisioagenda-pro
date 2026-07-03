@@ -40,8 +40,10 @@ CREATE POLICY "neuro_owner_all" ON public.neuro_assessment FOR ALL TO authentica
   WITH CHECK (therapist_id = auth.uid() OR is_super_admin(auth.uid()));
 CREATE POLICY "neuro_patient_read" ON public.neuro_assessment FOR SELECT TO authenticated
   USING (patient_id = current_patient_id());
+DROP TRIGGER IF EXISTS neuro_set_therapist ON public.neuro_assessment;
 CREATE TRIGGER neuro_set_therapist BEFORE INSERT ON public.neuro_assessment
   FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+DROP TRIGGER IF EXISTS neuro_updated ON public.neuro_assessment;
 CREATE TRIGGER neuro_updated BEFORE UPDATE ON public.neuro_assessment
   FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 
@@ -65,8 +67,10 @@ CREATE POLICY "sp_owner_all" ON public.session_parameters FOR ALL TO authenticat
   WITH CHECK (therapist_id = auth.uid() OR is_super_admin(auth.uid()));
 CREATE POLICY "sp_patient_read" ON public.session_parameters FOR SELECT TO authenticated
   USING (patient_id = current_patient_id());
+DROP TRIGGER IF EXISTS sp_set_therapist ON public.session_parameters;
 CREATE TRIGGER sp_set_therapist BEFORE INSERT ON public.session_parameters
   FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+DROP TRIGGER IF EXISTS sp_updated ON public.session_parameters;
 CREATE TRIGGER sp_updated BEFORE UPDATE ON public.session_parameters
   FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 

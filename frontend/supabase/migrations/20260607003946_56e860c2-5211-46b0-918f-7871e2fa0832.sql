@@ -1,5 +1,16 @@
 
--- 1. Roles: (Data migration for Lenilson removed to allow local DB build)
+-- 1. Roles: historical correction for the target user, only when present.
+DO $$
+DECLARE
+  v_target_user_id uuid := 'd518f8a3-be41-43dc-8d80-4f208b34ce71'::uuid;
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = v_target_user_id) THEN
+    DELETE FROM public.user_roles WHERE user_id = v_target_user_id;
+    INSERT INTO public.user_roles(user_id, role)
+    VALUES (v_target_user_id, 'admin');
+  END IF;
+END;
+$$;
 
 -- Política para super admin gerenciar papéis
 CREATE POLICY "Super admins manage roles" ON public.user_roles
@@ -16,7 +27,21 @@ ALTER TABLE public.vital_signs   ADD COLUMN IF NOT EXISTS therapist_id uuid;
 ALTER TABLE public.goals         ADD COLUMN IF NOT EXISTS therapist_id uuid;
 ALTER TABLE public.appointments  ADD COLUMN IF NOT EXISTS therapist_id uuid;
 
--- Backfill p/ Lenilson (Data migration removed to allow local DB build)
+-- Historical therapist backfill, skipped on empty/local databases.
+DO $$
+DECLARE
+  v_target_user_id uuid := 'd518f8a3-be41-43dc-8d80-4f208b34ce71'::uuid;
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = v_target_user_id) THEN
+    UPDATE public.patients     SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+    UPDATE public.sessions     SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+    UPDATE public.records      SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+    UPDATE public.vital_signs  SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+    UPDATE public.goals        SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+    UPDATE public.appointments SET therapist_id = v_target_user_id WHERE therapist_id IS NULL;
+  END IF;
+END;
+$$;
 
 -- 3. Trigger que auto-preenche therapist_id com auth.uid() em inserts
 CREATE OR REPLACE FUNCTION public.set_therapist_id()
@@ -33,11 +58,22 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_patients_set_therapist ON public.patients;
 CREATE TRIGGER trg_patients_set_therapist     BEFORE INSERT ON public.patients     FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+
+DROP TRIGGER IF EXISTS trg_sessions_set_therapist ON public.sessions;
 CREATE TRIGGER trg_sessions_set_therapist     BEFORE INSERT ON public.sessions     FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+
+DROP TRIGGER IF EXISTS trg_records_set_therapist ON public.records;
 CREATE TRIGGER trg_records_set_therapist      BEFORE INSERT ON public.records      FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+
+DROP TRIGGER IF EXISTS trg_vital_signs_set_therapist ON public.vital_signs;
 CREATE TRIGGER trg_vital_signs_set_therapist  BEFORE INSERT ON public.vital_signs  FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+
+DROP TRIGGER IF EXISTS trg_goals_set_therapist ON public.goals;
 CREATE TRIGGER trg_goals_set_therapist        BEFORE INSERT ON public.goals        FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
+
+DROP TRIGGER IF EXISTS trg_appointments_set_therapist ON public.appointments;
 CREATE TRIGGER trg_appointments_set_therapist BEFORE INSERT ON public.appointments FOR EACH ROW EXECUTE FUNCTION public.set_therapist_id();
 
 -- 4. Helper p/ paciente identificar o próprio cadastro

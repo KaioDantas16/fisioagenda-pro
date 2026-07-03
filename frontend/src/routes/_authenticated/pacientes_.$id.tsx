@@ -85,8 +85,8 @@ function PatientProfile() {
   async function exportPDF() {
     const { data: exportData, error } = await supabase.rpc("get_patient_export_data", { _patient_id: id });
     
-    if (error || !exportData) {
-      toast.error("Erro ao obter dados do prontuário");
+    if (error || !exportData?.patient) {
+      toast.error("Não foi possível obter os dados do prontuário");
       return;
     }
 
