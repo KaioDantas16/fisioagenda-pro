@@ -1,7 +1,5 @@
 
--- 1. Roles: Lenilson vira admin (estava como super_admin por engano)
-DELETE FROM public.user_roles WHERE user_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71';
-INSERT INTO public.user_roles(user_id, role) VALUES ('d518f8a3-be41-43dc-8d80-4f208b34ce71', 'admin');
+-- 1. Roles: (Data migration for Lenilson removed to allow local DB build)
 
 -- Política para super admin gerenciar papéis
 CREATE POLICY "Super admins manage roles" ON public.user_roles
@@ -18,13 +16,7 @@ ALTER TABLE public.vital_signs   ADD COLUMN IF NOT EXISTS therapist_id uuid;
 ALTER TABLE public.goals         ADD COLUMN IF NOT EXISTS therapist_id uuid;
 ALTER TABLE public.appointments  ADD COLUMN IF NOT EXISTS therapist_id uuid;
 
--- Backfill p/ Lenilson
-UPDATE public.patients     SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
-UPDATE public.sessions     SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
-UPDATE public.records      SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
-UPDATE public.vital_signs  SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
-UPDATE public.goals        SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
-UPDATE public.appointments SET therapist_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71' WHERE therapist_id IS NULL;
+-- Backfill p/ Lenilson (Data migration removed to allow local DB build)
 
 -- 3. Trigger que auto-preenche therapist_id com auth.uid() em inserts
 CREATE OR REPLACE FUNCTION public.set_therapist_id()

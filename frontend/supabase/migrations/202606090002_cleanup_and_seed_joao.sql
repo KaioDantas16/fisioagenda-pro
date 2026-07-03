@@ -26,7 +26,7 @@ BEGIN
 
   -- Se não encontrar o profissional Lenilson, aborta a inserção de dados para segurança
   IF v_therapist_id IS NULL THEN
-    RAISE EXCEPTION 'Profissional Lenilson (jesuslenilson36@gmail.com) nao encontrado no banco de dados. Operacao de seed cancelada.';
+    RETURN;
   END IF;
 
   -- Verifica se o paciente João Marcelo Ferreira (Teste) já existe
