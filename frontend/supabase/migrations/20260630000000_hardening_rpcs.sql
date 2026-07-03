@@ -14,25 +14,27 @@ BEGIN
         'patient_id', patient_id,
         'created_at', created_at,
         'updated_at', updated_at,
-        'main_complaint', main_complaint,
-        'current_illness_history', current_illness_history,
-        'past_medical_history', past_medical_history,
+        'chief_complaint', chief_complaint,
+        'history_present', history_present,
+        'history_past', history_past,
         'family_history', family_history,
         'medications', medications,
-        'habits', habits,
-        'vital_signs', vital_signs
+        'habits', habits
       ) FROM public.anamnese WHERE patient_id = _patient_id LIMIT 1
     ),
     'functional', COALESCE((
       SELECT json_agg(
         json_build_object(
           'id', id,
-          'date', date,
-          'daily_activities', daily_activities,
-          'work_activities', work_activities,
-          'sports_activities', sports_activities,
-          'limitations', limitations,
-          'assistive_devices', assistive_devices
+          'assessment_date', assessment_date,
+          'posture', posture,
+          'gait', gait,
+          'balance', balance,
+          'strength', strength,
+          'coordination', coordination,
+          'adl', adl,
+          'functional_scale', functional_scale,
+          'notes', notes
         )
       ) FROM public.functional_assessment WHERE patient_id = _patient_id
     ), '[]'::json),
@@ -40,12 +42,15 @@ BEGIN
       SELECT json_agg(
         json_build_object(
           'id', id,
-          'created_at', created_at,
-          'point_x', point_x,
-          'point_y', point_y,
+          'entry_date', entry_date,
+          'region', region,
+          'side', side,
           'intensity', intensity,
-          'body_part', body_part,
-          'description', description
+          'quality', quality,
+          'factors_better', factors_better,
+          'factors_worse', factors_worse,
+          'timing', timing,
+          'notes', notes
         )
       ) FROM public.pain_map_entries WHERE patient_id = _patient_id
     ), '[]'::json),
@@ -53,13 +58,13 @@ BEGIN
       SELECT json_agg(
         json_build_object(
           'id', id,
-          'date', date,
+          'measured_at', measured_at,
           'joint', joint,
           'movement', movement,
-          'active_degree', active_degree,
-          'passive_degree', passive_degree,
-          'pain_level', pain_level,
-          'observations', observations
+          'side', side,
+          'active_degrees', active_degrees,
+          'passive_degrees', passive_degrees,
+          'notes', notes
         )
       ) FROM public.rom_measurements WHERE patient_id = _patient_id
     ), '[]'::json),
@@ -67,11 +72,11 @@ BEGIN
       SELECT json_agg(
         json_build_object(
           'id', id,
-          'date', date,
+          'performed_at', performed_at,
           'test_name', test_name,
+          'region', region,
           'result', result,
-          'details', details,
-          'positive', positive
+          'notes', notes
         )
       ) FROM public.special_tests WHERE patient_id = _patient_id
     ), '[]'::json),
@@ -79,12 +84,11 @@ BEGIN
       SELECT json_agg(
         json_build_object(
           'id', id,
-          'date', date,
+          'measured_at', measured_at,
           'segment', segment,
-          'reference_point', reference_point,
-          'right_measure', right_measure,
-          'left_measure', left_measure,
-          'difference', difference
+          'side', side,
+          'measurement_cm', measurement_cm,
+          'notes', notes
         )
       ) FROM public.perimetry WHERE patient_id = _patient_id
     ), '[]'::json)

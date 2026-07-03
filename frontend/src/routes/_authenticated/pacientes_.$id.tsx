@@ -83,6 +83,7 @@ function PatientProfile() {
   const cls = CLASSIFICATIONS[patient.classification] ?? CLASSIFICATIONS.estavel;
 
   async function exportPDF() {
+    // @ts-expect-error types mismatch
     const { data: exportData, error } = await supabase.rpc("get_patient_export_data", { _patient_id: id });
     
     if (error || !exportData) {
