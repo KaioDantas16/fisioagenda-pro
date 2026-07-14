@@ -1,3 +1,4 @@
+import React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { isMinor } from '@/lib/medical-intake/utils';

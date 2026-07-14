@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import {
   isMinor,
   normalizeName,
@@ -5,7 +6,7 @@ import {
   getCpfLast4,
   calculateRiskLevel,
   mockHash
-} from '../frontend/src/lib/medical-intake/utils';
+} from '../src/lib/medical-intake/utils';
 
 describe('Medical Intake Utilities', () => {
   it('idade menor/adulto', () => {
