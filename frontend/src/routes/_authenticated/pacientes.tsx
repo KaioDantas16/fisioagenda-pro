@@ -135,6 +135,16 @@ function Pacientes() {
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${cls.className}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${cls.dot}`} />{cls.label}
                       </span>
+                      {p.needs_review && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-amber-100 text-amber-800 border-amber-200 font-semibold">
+                          Aguardando conferência
+                        </span>
+                      )}
+                      {p.status === 'Possível duplicidade' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-red-100 text-red-800 border-red-200 font-semibold">
+                          Possível duplicidade
+                        </span>
+                      )}
                       {p.phone && <span>{p.phone}</span>}
                     </div>
                   </div>
