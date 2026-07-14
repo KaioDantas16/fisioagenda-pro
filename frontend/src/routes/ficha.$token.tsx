@@ -16,12 +16,17 @@ function PublicMedicalIntakePage() {
   const [formData, setFormData] = useState<any>({});
   const [submitted, setSubmitted] = useState(false);
 
-  // MOCK FEATURE FLAG
-  const PUBLIC_MEDICAL_INTAKE_ENABLED = false;
+  const PUBLIC_MEDICAL_INTAKE_ENABLED = import.meta.env.VITE_PUBLIC_MEDICAL_INTAKE_ENABLED === 'true';
 
   if (!PUBLIC_MEDICAL_INTAKE_ENABLED) {
-    // Para testar a UI, pode trocar para true temporariamente, mas a regra pede false por padrão.
-    // Vamos mostrar a UI mesmo assim apenas se for explicitly simulated, mas para manter estático e mockado:
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow p-8 text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Serviço indisponível</h2>
+          <p className="text-gray-600">A Ficha Médica Digital está temporariamente desativada.</p>
+        </div>
+      </div>
+    );
   }
 
   const handleChange = (e: any) => {
