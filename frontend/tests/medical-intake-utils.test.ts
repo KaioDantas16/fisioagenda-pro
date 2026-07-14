@@ -42,14 +42,13 @@ describe('Medical Intake Utilities', () => {
 
   it('risk_level atenção', () => {
     expect(calculateRiskLevel({
-      has_diabetes: true
+      has_current_medication: true
     })).toBe('atenção');
   });
 
   it('risk_level revisão obrigatória', () => {
     expect(calculateRiskLevel({
-      has_diabetes: true,
-      has_heart_condition: true
+      has_diabetes: true
     })).toBe('revisão obrigatória');
   });
 });

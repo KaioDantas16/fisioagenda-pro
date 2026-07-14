@@ -36,23 +36,34 @@ export function isMinor(birthDateStr?: string): boolean {
 }
 
 export function calculateRiskLevel(data: any): "nenhum" | "atenção" | "revisão obrigatória" {
+  const isMinorPatient = isMinor(data.birth_date);
+  const missingGuardian = isMinorPatient && !data.guardian_name;
+  const missingConsent = isMinorPatient && !data.consent_accepted;
+  const possibleDuplicate = data.duplicate_status === 'Possível duplicidade';
+
   if (
     data.has_heart_condition ||
-    data.has_kidney_condition ||
-    data.has_medication_allergy ||
-    data.has_recent_surgery
+    data.has_allergy_medication ||
+    data.has_allergy ||
+    data.has_diabetes ||
+    data.has_recent_fracture ||
+    data.has_recent_injury ||
+    data.has_surgery_history ||
+    data.has_recent_hospitalization ||
+    data.has_disability_or_specific_condition ||
+    missingGuardian ||
+    missingConsent ||
+    possibleDuplicate
   ) {
     return "revisão obrigatória";
   }
   
   if (
-    data.has_diabetes ||
+    data.has_current_medication ||
     data.has_psychological_condition ||
-    data.has_food_allergy ||
-    data.has_recent_injury ||
-    data.has_recent_fracture ||
-    data.has_recent_hospitalization ||
-    data.has_disability_or_specific_condition
+    data.has_kidney_condition ||
+    (data.general_observation && data.general_observation.trim().length > 0) ||
+    (data.past_diseases && (data.past_diseases.toLowerCase().includes('rinite') || data.past_diseases.toLowerCase().includes('bronquite')))
   ) {
     return "atenção";
   }
