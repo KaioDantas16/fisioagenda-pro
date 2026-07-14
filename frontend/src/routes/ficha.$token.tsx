@@ -2,6 +2,7 @@ import React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { isMinor } from '@/lib/medical-intake/utils';
+import { submitMedicalIntake } from '@/lib/api/medical-intake.functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,10 +40,31 @@ function PublicMedicalIntakePage() {
 
   const showGuardianSection = isMinor(formData.birth_date);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate local send without real save
-    setSubmitted(true);
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        token: 'demo-token', // Na URL real pegaríamos dos params
+        idempotencyKey: crypto.randomUUID(), // Gera key pro envio
+        formData,
+        honeypot: '' // campo invisível na UI pra prevenir spam
+      };
+      
+      const result = await submitMedicalIntake({ data: payload });
+      if (result.success) {
+        setSubmitted(true);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Ocorreu um erro ao enviar a ficha. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const fillDemoData = () => {
@@ -117,6 +139,11 @@ function PublicMedicalIntakePage() {
           </Button>
         )}
         <h1 className="text-2xl font-bold mb-6">Ficha Médica</h1>
+        {errorMsg && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-md mb-6 border border-red-200">
+            {errorMsg}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-8">
           
           <section className="space-y-4">
@@ -287,7 +314,9 @@ function PublicMedicalIntakePage() {
 
           <section className="pt-4">
             <h2 className="text-xl font-semibold border-b pb-4 mb-4">Revisão e envio</h2>
-            <Button type="submit" className="w-full">Finalizar e Enviar Ficha</Button>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? 'Enviando...' : 'Enviar Ficha Médica'}
+            </Button>
           </section>
         </form>
       </div>

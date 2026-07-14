@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
+import { getMockPatients } from "@/lib/api/medical-intake.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,9 +39,24 @@ function Pacientes() {
         .from("patients")
         .select("*")
         .eq("therapist_id", therapistId)
+        .eq("therapist_id", therapistId)
         .order("full_name");
-      if (error) throw error;
-      return data ?? [];
+        
+      let results = data ?? [];
+      
+      // MOCK_LOCAL merge for Medical Intake simulation
+      if (import.meta.env.DEV) {
+        try {
+          const mockP = await getMockPatients();
+          if (mockP && mockP.length > 0) {
+            results = [...mockP, ...results];
+          }
+        } catch (e) {
+          console.error("Failed to load mock patients", e);
+        }
+      }
+      
+      return results;
     },
     enabled: !!therapistId,
   });
@@ -143,6 +159,21 @@ function Pacientes() {
                       {p.status === 'Possível duplicidade' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-red-100 text-red-800 border-red-200 font-semibold">
                           Possível duplicidade
+                        </span>
+                      )}
+                      {p.duplicate_status === 'possible' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-red-100 text-red-800 border-red-200 font-semibold">
+                          Possível duplicidade
+                        </span>
+                      )}
+                      {p.origin === "Ficha Médica Digital" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-blue-100 text-blue-800 border-blue-200 font-semibold">
+                          Ficha Médica Digital (Local Mock)
+                        </span>
+                      )}
+                      {p.risk_level === "revisão obrigatória" && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-red-100 text-red-800 border-red-200 font-semibold">
+                          Revisão obrigatória
                         </span>
                       )}
                       {p.phone && <span>{p.phone}</span>}
