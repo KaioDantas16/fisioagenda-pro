@@ -10,8 +10,8 @@ export const Route = createFileRoute('/_authenticated/fichas-medicas')({
 
 function AdminFichasMedicasPage() {
   const mockFichas = [
-    { id: '1', title: 'Jogos Estudantis 2026', responses: 45, active: true },
-    { id: '2', title: 'Escolinha Sub-15', responses: 12, active: false }
+    { id: '1', title: 'Jogos Estudantis 2026', responses: 1, active: true, link: '/ficha/demo-token' },
+    { id: '2', title: 'Escolinha Sub-15', responses: 12, active: false, link: '/ficha/escolinha' }
   ];
 
   return (
@@ -19,6 +19,17 @@ function AdminFichasMedicasPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Fichas Médicas Digitais</h1>
         <Button>Criar nova ficha</Button>
+      </div>
+
+      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mt-6">
+        <h2 className="text-xl font-semibold text-blue-800 mb-4">Como funcionaria (Fluxo de Demonstração)</h2>
+        <ol className="list-decimal pl-5 space-y-2 text-blue-900">
+          <li>Copie o link ou QR Code do evento "Jogos Estudantis 2026"</li>
+          <li>Envie para os responsáveis via WhatsApp ou outro canal</li>
+          <li>O responsável preenche a Ficha Médica pelo celular</li>
+          <li>O paciente entra no sistema como "Aguardando conferência"</li>
+          <li>O profissional revisa os alertas médicos antes de validar a ficha</li>
+        </ol>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
@@ -55,9 +66,9 @@ function AdminFichasMedicasPage() {
                   <td className="p-4">{f.responses}</td>
                   <td className="p-4">{f.active ? 'Ativo' : 'Inativo'}</td>
                   <td className="p-4 space-x-2">
-                    <Button variant="outline" size="sm">Copiar link</Button>
-                    <Button variant="outline" size="sm">QR Code</Button>
-                    <Button variant="secondary" size="sm">WhatsApp</Button>
+                    <Button variant="outline" size="sm" onClick={() => window.open(f.link, '_blank')}>Abrir link (Mock)</Button>
+                    <Button variant="outline" size="sm">QR Code (Mock)</Button>
+                    <Button variant="secondary" size="sm">WhatsApp (Mock)</Button>
                     {f.active && <Button variant="destructive" size="sm">Desativar</Button>}
                   </td>
                 </tr>
