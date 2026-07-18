@@ -1,7 +1,12 @@
 
 -- 1. Roles: Lenilson vira admin (estava como super_admin por engano)
-DELETE FROM public.user_roles WHERE user_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71';
-INSERT INTO public.user_roles(user_id, role) VALUES ('d518f8a3-be41-43dc-8d80-4f208b34ce71', 'admin');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71') THEN
+    DELETE FROM public.user_roles WHERE user_id = 'd518f8a3-be41-43dc-8d80-4f208b34ce71';
+    INSERT INTO public.user_roles(user_id, role) VALUES ('d518f8a3-be41-43dc-8d80-4f208b34ce71', 'admin');
+  END IF;
+END$$;
 
 -- Política para super admin gerenciar papéis
 CREATE POLICY "Super admins manage roles" ON public.user_roles
