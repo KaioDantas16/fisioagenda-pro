@@ -8,6 +8,8 @@ import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { InstallAppPrompt } from "./InstallAppPrompt";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 const fisioNav = [
   { to: "/dashboard", label: "Painel", icon: LayoutDashboard },
@@ -107,41 +109,25 @@ export function AppLayout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 md:ml-60">
-        <header className="h-14 px-4 lg:px-6 border-b bg-card flex items-center gap-3 sticky top-0 z-20 md:hidden">
+        <header className="h-14 px-4 lg:px-6 border-b bg-card flex items-center gap-2 sticky top-0 z-20 md:hidden">
           <img src={logoUrl} alt="" className="h-8 w-8 rounded-full bg-white object-contain" />
-          <p className="font-display font-bold flex-1">FisioAgenda Pro</p>
+          <p className="font-display font-bold flex-1 truncate">FisioAgenda Pro</p>
           {isSuper && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
               <ShieldCheck className="h-3 w-3" /> Suporte
             </span>
           )}
+          <Button variant="ghost" size="icon" aria-label="Sair" onClick={signOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
         </header>
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto pb-28 md:pb-8">
+          <InstallAppPrompt />
           <Outlet />
         </main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border flex justify-around py-2 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        {nav.map((item) => {
-          const Icon = item.icon;
-          const active = loc.pathname.startsWith(item.to);
-          return (
-            <Link key={item.to} to={item.to}
-              className={cn(
-                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg flex-1 max-w-20 text-[10px] font-medium transition",
-                active ? "text-primary" : "text-muted-foreground",
-              )}>
-              <Icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-        <button onClick={signOut}
-          className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg flex-1 max-w-20 text-[10px] font-medium text-muted-foreground">
-          <LogOut className="h-5 w-5" />
-          <span>Sair</span>
-        </button>
-      </nav>
+      {!isPaciente && <MobileBottomNav />}
     </div>
   );
 }
