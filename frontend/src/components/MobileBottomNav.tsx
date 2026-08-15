@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Calendar, Users, LayoutDashboard, FileText } from "lucide-react";
+import { Calendar, CalendarDays, Users, LayoutDashboard, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -7,7 +7,7 @@ const items = [
   { to: "/pacientes" as const, label: "Pacientes", icon: Users, match: (path: string) => path.startsWith("/pacientes") },
   { to: "/agenda" as const, label: "Agenda", icon: Calendar, match: (path: string) => path.startsWith("/agenda") },
   { to: "/prontuario/novo" as const, label: "Prontuário", icon: FileText, match: (path: string) => path.startsWith("/prontuario") },
-  { to: "/agenda" as const, label: "Agenda", icon: Calendar, match: (path: string) => path.startsWith("/agenda") },
+  { to: "/agenda" as const, label: "Hoje", icon: CalendarDays, match: (path: string) => path.startsWith("/agenda") },
 ];
 
 export function MobileBottomNav() {
