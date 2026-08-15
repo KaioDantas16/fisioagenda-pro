@@ -6,7 +6,7 @@ import { OWNER_PHOTO_URL, CLINIC, APPOINTMENT_STATUS, CLASSIFICATIONS } from "@/
 import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import {
   Calendar, Users, Activity, TrendingUp, Phone, Plus, UserPlus, FileText,
-  AlertTriangle, Cake, CheckCircle, DollarSign, Clock, Smartphone,
+  AlertTriangle, Cake, CheckCircle, DollarSign, Clock, Smartphone, LifeBuoy, BellRing,
 } from "lucide-react";
 import { fmtBRL } from "@/lib/cpf";
 import {
@@ -296,6 +296,22 @@ function Dashboard() {
           <FileText className="h-5 w-5 text-primary mb-2" />
           <p className="text-sm font-semibold">Abrir prontuário</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Nova evolução</p>
+        </Link>
+        <Link
+          to="/lembretes"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <BellRing className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Lembretes</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">24h e 10 min</p>
+        </Link>
+        <Link
+          to="/suporte"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <LifeBuoy className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Suporte</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Abrir chamado</p>
         </Link>
         <button
           type="button"
