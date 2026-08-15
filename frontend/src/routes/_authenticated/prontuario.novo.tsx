@@ -112,19 +112,19 @@ function NovoProntuario() {
     pain[0] <= 3 ? "text-success" : pain[0] <= 6 ? "text-amber-600" : "text-destructive";
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto">
+    <div className="space-y-5 max-w-3xl mx-auto pb-4">
       <div>
         <h1 className="text-2xl flex items-center gap-2"><FileText className="h-6 w-6 text-primary" /> Novo prontuário</h1>
-        <p className="text-sm text-muted-foreground">Busque o paciente ou cadastre na hora.</p>
+        <p className="text-sm text-muted-foreground mt-1">Busque o paciente ou cadastre na hora.</p>
       </div>
 
-      <Card className="p-4 space-y-3">
-        <Label>Paciente</Label>
+      <Card className="p-5 space-y-4">
+        <Label className="text-base">Paciente</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
-            className="pl-9"
+            className="pl-9 h-12 text-base"
             placeholder="Digite o nome ou telefone..."
             value={q}
             onChange={(e) => { setQ(e.target.value); setSelected(null); }}
@@ -145,7 +145,7 @@ function NovoProntuario() {
           <div className="border rounded-xl overflow-hidden">
             {matches.map((p: any) => (
               <button key={p.id} type="button" onClick={() => setSelected(p)}
-                className="w-full text-left p-3 hover:bg-muted flex items-center gap-3 border-b last:border-b-0">
+                className="w-full text-left p-3.5 hover:bg-muted flex items-center gap-3 border-b last:border-b-0">
                 <div className="h-8 w-8 rounded-full gradient-brand text-white flex items-center justify-center text-xs font-bold">
                   {p.full_name?.[0]?.toUpperCase()}
                 </div>
@@ -168,7 +168,7 @@ function NovoProntuario() {
         )}
       </Card>
 
-      <Card className="p-4 space-y-4">
+      <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <Label className="text-base font-display font-bold">Escala de dor (EVA)</Label>
           <span className={`text-2xl font-bold ${painColor}`}>{pain[0]}/10</span>
@@ -179,7 +179,7 @@ function NovoProntuario() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label className="text-base font-display font-bold">Modelo de Prontuário</Label>
         <p className="text-xs text-muted-foreground">Selecione um modelo clínico para pré-preencher a evolução (você poderá editá-la antes de salvar).</p>
         <Select onValueChange={handleApplyTemplate}>
@@ -194,30 +194,30 @@ function NovoProntuario() {
         </Select>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label className="text-base font-display font-bold">Mapa Corporal</Label>
         <BodyMap selectedRegions={selectedRegions} onChange={setSelectedRegions} />
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label>S — Subjetivo (o que o paciente relata)</Label>
-        <Textarea rows={3} value={soap.subjective} onChange={(e) => setSoap({ ...soap, subjective: e.target.value })} />
+        <Textarea className="min-h-24 text-base" rows={4} value={soap.subjective} onChange={(e) => setSoap({ ...soap, subjective: e.target.value })} />
       </Card>
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label>O — Objetivo (achados do fisioterapeuta)</Label>
-        <Textarea rows={3} value={soap.objective} onChange={(e) => setSoap({ ...soap, objective: e.target.value })} />
+        <Textarea className="min-h-24 text-base" rows={4} value={soap.objective} onChange={(e) => setSoap({ ...soap, objective: e.target.value })} />
       </Card>
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label>A — Avaliação</Label>
-        <Textarea rows={3} value={soap.assessment} onChange={(e) => setSoap({ ...soap, assessment: e.target.value })} />
+        <Textarea className="min-h-24 text-base" rows={4} value={soap.assessment} onChange={(e) => setSoap({ ...soap, assessment: e.target.value })} />
       </Card>
-      <Card className="p-4 space-y-3">
+      <Card className="p-5 space-y-3">
         <Label>P — Plano e orientações</Label>
-        <Textarea rows={3} value={soap.plan} onChange={(e) => setSoap({ ...soap, plan: e.target.value })} />
+        <Textarea className="min-h-24 text-base" rows={4} value={soap.plan} onChange={(e) => setSoap({ ...soap, plan: e.target.value })} />
       </Card>
 
-      <div className="flex gap-3 sticky bottom-20 md:bottom-4 z-10">
-        <Button className="flex-1 gradient-brand text-white" onClick={saveRecord} disabled={saving || !selected}>
+      <div className="flex gap-3 sticky bottom-24 md:bottom-4 z-10">
+        <Button className="flex-1 h-12 text-base gradient-brand text-white" onClick={saveRecord} disabled={saving || !selected}>
           {saving ? "Salvando..." : "Salvar prontuário"}
         </Button>
       </div>

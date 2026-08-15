@@ -6,7 +6,7 @@ import { OWNER_PHOTO_URL, CLINIC, APPOINTMENT_STATUS, CLASSIFICATIONS } from "@/
 import { useClinicAssets } from "@/hooks/use-clinic-assets";
 import {
   Calendar, Users, Activity, TrendingUp, Phone, Plus, UserPlus, FileText,
-  AlertTriangle, Cake, CheckCircle, DollarSign, Clock,
+  AlertTriangle, Cake, CheckCircle, DollarSign, Clock, Smartphone,
 } from "lucide-react";
 import { fmtBRL } from "@/lib/cpf";
 import {
@@ -242,8 +242,8 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="gradient-brand rounded-2xl p-6 lg:p-8 text-white shadow-lg-brand flex flex-col sm:flex-row items-center gap-6">
-        <img src={ownerPhotoUrl} alt={professionalName} className="h-20 w-20 lg:h-24 lg:w-24 rounded-full object-cover ring-4 ring-white/30" />
+      <div className="gradient-brand rounded-2xl p-4 sm:p-6 lg:p-8 text-white shadow-lg-brand flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+        <img src={ownerPhotoUrl} alt={professionalName} className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 rounded-full object-cover ring-4 ring-white/30" />
         <div className="text-center sm:text-left">
           <p className="text-sm opacity-90">Bem-vindo de volta,</p>
           <h2 className="text-2xl lg:text-3xl text-white">{professionalName}</h2>
@@ -258,10 +258,61 @@ function Dashboard() {
         <StatCard icon={TrendingUp} label="Presença do mês" value={`${(stats?.attendance ?? 0).toFixed(0)}%`} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="hidden md:flex flex-wrap gap-2">
         <Button asChild className="gradient-brand text-white"><Link to="/agenda"><Plus className="h-4 w-4 mr-1" />Novo agendamento</Link></Button>
         <Button asChild variant="outline"><Link to="/pacientes"><UserPlus className="h-4 w-4 mr-1" />Novo paciente</Link></Button>
         <Button asChild variant="outline"><Link to="/pacientes"><FileText className="h-4 w-4 mr-1" />Ver pacientes</Link></Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 md:hidden">
+        <Link
+          to="/pacientes"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <UserPlus className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Novo paciente</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Cadastrar ficha</p>
+        </Link>
+        <Link
+          to="/agenda"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <Calendar className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Abrir agenda</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Horários do dia</p>
+        </Link>
+        <Link
+          to="/pacientes"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <Users className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Ver pacientes</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Lista da clínica</p>
+        </Link>
+        <Link
+          to="/prontuario/novo"
+          className="rounded-2xl border bg-card p-4 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <FileText className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Abrir prontuário</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Nova evolução</p>
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById("install-app-prompt");
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+              return;
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="col-span-2 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-left shadow-card active:scale-[0.98] transition-transform"
+        >
+          <Smartphone className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-semibold">Instalar aplicativo</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Ícone na tela inicial do celular</p>
+        </button>
       </div>
 
       {/* Balanço Financeiro */}
