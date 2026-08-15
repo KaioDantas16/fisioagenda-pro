@@ -15,6 +15,7 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const today = new Date();
   const { data: therapistId } = useEffectiveTherapistId();
+  const { canInstall, isStandalone, isAndroid, busy, promptInstall, openGuide } = usePwaInstall();
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
   const weekStart = startOfWeek(today, { weekStartsOn: 0 });
@@ -297,22 +299,30 @@ function Dashboard() {
           <p className="text-sm font-semibold">Abrir prontuário</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Nova evolução</p>
         </Link>
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.getElementById("install-app-prompt");
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "start" });
-              return;
-            }
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className="col-span-2 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-left shadow-card active:scale-[0.98] transition-transform"
-        >
-          <Smartphone className="h-5 w-5 text-primary mb-2" />
-          <p className="text-sm font-semibold">Instalar aplicativo</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Ícone na tela inicial do celular</p>
-        </button>
+        {!isStandalone && isAndroid && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (canInstall) {
+                void promptInstall();
+                return;
+              }
+              openGuide();
+            }}
+            className="col-span-2 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-left shadow-card active:scale-[0.98] transition-transform disabled:opacity-70"
+          >
+            <Smartphone className="h-5 w-5 text-primary mb-2" />
+            <p className="text-sm font-semibold">
+              {canInstall ? "Instalar aplicativo" : "Como instalar no celular"}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {canInstall
+                ? "Ícone na tela inicial do celular"
+                : "Passo a passo se o Chrome não mostrar a instalação"}
+            </p>
+          </button>
+        )}
       </div>
 
       {/* Balanço Financeiro */}
