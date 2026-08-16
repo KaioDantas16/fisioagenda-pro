@@ -14,9 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, MessageCircle, Plus, FileDown, Trash2, KeyRound, Copy, ShieldCheck, Edit2 } from "lucide-react";
 import { toast } from "sonner";
-import { CLASSIFICATIONS } from "@/lib/brand";
+import { CLASSIFICATIONS, CLINIC } from "@/lib/brand";
 import { maskCPF } from "@/lib/cpf";
 import { MessageModal } from "@/components/MessageModal";
+import { WhatsAppShareDialog } from "@/components/WhatsAppShareDialog";
 import { downloadProntuarioPDF, downloadFrequenciaPDF, downloadProntuarioIndividualPDF } from "@/lib/pdf";
 import { format } from "date-fns";
 import { createPatientPortalAccess } from "@/lib/patient-portal.functions";
@@ -122,6 +123,15 @@ function PatientProfile() {
         </div>
         <MessageModal patientName={patient.full_name} phone={patient.phone} email={patient.email}
           trigger={<Button variant="outline" size="icon" title="Mensagem"><MessageCircle className="h-4 w-4" /></Button>} />
+        <WhatsAppShareDialog
+          kind="report"
+          patientId={patient.id}
+          patientName={patient.full_name}
+          phone={patient.phone}
+          professionalName={CLINIC.owner}
+          dateLabel={format(new Date(), "dd/MM/yyyy")}
+          trigger={<Button variant="outline" title="Compartilhar no WhatsApp"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
+        />
         <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
         <EditPatientModal patient={patient} onChange={() => { qc.invalidateQueries({ queryKey: ["patient", id] }); qc.invalidateQueries({ queryKey: ["patients"] }); }} />
         <DeletePatientButton patientId={id} patientName={patient.full_name} />

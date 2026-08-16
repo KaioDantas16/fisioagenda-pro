@@ -11,10 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, MessageCircle, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { CLASSIFICATIONS } from "@/lib/brand";
+import { format } from "date-fns";
+import { CLASSIFICATIONS, CLINIC } from "@/lib/brand";
 import { maskCPF } from "@/lib/cpf";
 import { MessageModal } from "@/components/MessageModal";
 import { PatientForm } from "@/components/clinical/PatientForm";
+import { WhatsAppShareDialog } from "@/components/WhatsAppShareDialog";
 
 export const Route = createFileRoute("/_authenticated/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — FisioAgenda Pro" }] }),
@@ -139,11 +141,20 @@ function Pacientes() {
                     </div>
                   </div>
                   {(p.phone || p.email) && (
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <MessageModal patientName={p.full_name} phone={p.phone} email={p.email}
                         trigger={<button title="Mensagem" className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-[#25D366]/15 text-[#1d9d4d] hover:bg-[#25D366]/25">
                           <MessageCircle className="h-4 w-4" />
                         </button>} />
+                      <WhatsAppShareDialog
+                        kind="summary"
+                        patientId={p.id}
+                        patientName={p.full_name}
+                        phone={p.phone}
+                        professionalName={CLINIC.owner}
+                        dateLabel={format(new Date(), "dd/MM/yyyy")}
+                        trigger={<button title="Gerar texto para WhatsApp" className="h-9 px-3 text-[11px] font-semibold rounded-full bg-primary/10 text-primary">Texto</button>}
+                      />
                     </div>
                   )}
                   <span className="h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground pointer-events-none">

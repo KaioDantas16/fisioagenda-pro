@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { Calendar, Users, LayoutDashboard, LogOut, Settings, FileText, Heart, ShieldCheck } from "lucide-react";
+import { Calendar, Users, LayoutDashboard, LogOut, Settings, FileText, Heart, ShieldCheck, LifeBuoy, BellRing } from "lucide-react";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ const fisioNav = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
   { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/prontuario/novo", label: "Prontuário", icon: FileText },
+  { to: "/suporte", label: "Suporte", icon: LifeBuoy },
+  { to: "/lembretes", label: "Lembretes", icon: BellRing },
 ] as const;
 
 const pacienteNav = [

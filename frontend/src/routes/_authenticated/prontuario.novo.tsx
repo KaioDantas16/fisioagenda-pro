@@ -12,8 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, UserPlus, FileText, Check } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { SOAP_TEMPLATES } from "@/lib/soap-templates";
 import { BodyMap } from "@/components/clinical/BodyMap";
+import { WhatsAppShareDialog } from "@/components/WhatsAppShareDialog";
+import { CLINIC } from "@/lib/brand";
 
 export const Route = createFileRoute("/_authenticated/prontuario/novo")({
   head: () => ({ meta: [{ title: "Novo prontuário — FisioAgenda Pro" }] }),
@@ -220,6 +223,17 @@ function NovoProntuario() {
         <Button className="flex-1 h-12 text-base gradient-brand text-white" onClick={saveRecord} disabled={saving || !selected}>
           {saving ? "Salvando..." : "Salvar prontuário"}
         </Button>
+        {selected && (
+          <WhatsAppShareDialog
+            kind="report"
+            patientId={selected.id}
+            patientName={selected.full_name}
+            phone={selected.phone}
+            professionalName={CLINIC.owner}
+            dateLabel={format(new Date(), "dd/MM/yyyy")}
+            trigger={<Button variant="outline" className="h-12">Compartilhar no WhatsApp</Button>}
+          />
+        )}
       </div>
 
       <Dialog open={quickOpen} onOpenChange={setQuickOpen}>

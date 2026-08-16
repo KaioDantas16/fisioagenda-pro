@@ -9,45 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedPortalPacienteRouteImport } from './routes/_authenticated/portal-paciente'
-import { Route as AuthenticatedPacientesRouteImport } from './routes/_authenticated/pacientes'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
-import { Route as AuthenticatedProntuarioNovoRouteImport } from './routes/_authenticated/prontuario.novo'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedLembretesRouteImport } from './routes/_authenticated/lembretes'
+import { Route as AuthenticatedPacientesRouteImport } from './routes/_authenticated/pacientes'
+import { Route as AuthenticatedPortalPacienteRouteImport } from './routes/_authenticated/portal-paciente'
+import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
 import { Route as AuthenticatedPacientesIdRouteImport } from './routes/_authenticated/pacientes_.$id'
+import { Route as AuthenticatedProntuarioNovoRouteImport } from './routes/_authenticated/prontuario.novo'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedPortalPacienteRoute =
-  AuthenticatedPortalPacienteRouteImport.update({
-    id: '/portal-paciente',
-    path: '/portal-paciente',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPacientesRoute = AuthenticatedPacientesRouteImport.update({
-  id: '/pacientes',
-  path: '/pacientes',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedConfiguracoesRoute =
@@ -56,21 +47,42 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
-  id: '/agenda',
-  path: '/agenda',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProntuarioNovoRoute =
-  AuthenticatedProntuarioNovoRouteImport.update({
-    id: '/prontuario/novo',
-    path: '/prontuario/novo',
+const AuthenticatedLembretesRoute = AuthenticatedLembretesRouteImport.update({
+  id: '/lembretes',
+  path: '/lembretes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPacientesRoute = AuthenticatedPacientesRouteImport.update({
+  id: '/pacientes',
+  path: '/pacientes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPortalPacienteRoute =
+  AuthenticatedPortalPacienteRouteImport.update({
+    id: '/portal-paciente',
+    path: '/portal-paciente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSuporteRoute = AuthenticatedSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPacientesIdRoute =
   AuthenticatedPacientesIdRouteImport.update({
     id: '/pacientes_/$id',
     path: '/pacientes/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProntuarioNovoRoute =
+  AuthenticatedProntuarioNovoRouteImport.update({
+    id: '/prontuario/novo',
+    path: '/prontuario/novo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -80,8 +92,10 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/lembretes': typeof AuthenticatedLembretesRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -91,8 +105,10 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/lembretes': typeof AuthenticatedLembretesRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -104,8 +120,10 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/lembretes': typeof AuthenticatedLembretesRoute
   '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/pacientes_/$id': typeof AuthenticatedPacientesIdRoute
   '/_authenticated/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -117,8 +135,10 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/configuracoes'
     | '/dashboard'
+    | '/lembretes'
     | '/pacientes'
     | '/portal-paciente'
+    | '/suporte'
     | '/pacientes/$id'
     | '/prontuario/novo'
   fileRoutesByTo: FileRoutesByTo
@@ -128,8 +148,10 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/configuracoes'
     | '/dashboard'
+    | '/lembretes'
     | '/pacientes'
     | '/portal-paciente'
+    | '/suporte'
     | '/pacientes/$id'
     | '/prontuario/novo'
   id:
@@ -140,8 +162,10 @@ export interface FileRouteTypes {
     | '/_authenticated/agenda'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/lembretes'
     | '/_authenticated/pacientes'
     | '/_authenticated/portal-paciente'
+    | '/_authenticated/suporte'
     | '/_authenticated/pacientes_/$id'
     | '/_authenticated/prontuario/novo'
   fileRoutesById: FileRoutesById
@@ -154,11 +178,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -168,32 +192,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/portal-paciente': {
-      id: '/_authenticated/portal-paciente'
-      path: '/portal-paciente'
-      fullPath: '/portal-paciente'
-      preLoaderRoute: typeof AuthenticatedPortalPacienteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pacientes': {
-      id: '/_authenticated/pacientes'
-      path: '/pacientes'
-      fullPath: '/pacientes'
-      preLoaderRoute: typeof AuthenticatedPacientesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes': {
@@ -203,18 +213,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/agenda': {
-      id: '/_authenticated/agenda'
-      path: '/agenda'
-      fullPath: '/agenda'
-      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/prontuario/novo': {
-      id: '/_authenticated/prontuario/novo'
-      path: '/prontuario/novo'
-      fullPath: '/prontuario/novo'
-      preLoaderRoute: typeof AuthenticatedProntuarioNovoRouteImport
+    '/_authenticated/lembretes': {
+      id: '/_authenticated/lembretes'
+      path: '/lembretes'
+      fullPath: '/lembretes'
+      preLoaderRoute: typeof AuthenticatedLembretesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pacientes': {
+      id: '/_authenticated/pacientes'
+      path: '/pacientes'
+      fullPath: '/pacientes'
+      preLoaderRoute: typeof AuthenticatedPacientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portal-paciente': {
+      id: '/_authenticated/portal-paciente'
+      path: '/portal-paciente'
+      fullPath: '/portal-paciente'
+      preLoaderRoute: typeof AuthenticatedPortalPacienteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/suporte': {
+      id: '/_authenticated/suporte'
+      path: '/suporte'
+      fullPath: '/suporte'
+      preLoaderRoute: typeof AuthenticatedSuporteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pacientes_/$id': {
@@ -224,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPacientesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/prontuario/novo': {
+      id: '/_authenticated/prontuario/novo'
+      path: '/prontuario/novo'
+      fullPath: '/prontuario/novo'
+      preLoaderRoute: typeof AuthenticatedProntuarioNovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -231,8 +269,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedLembretesRoute: typeof AuthenticatedLembretesRoute
   AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedPortalPacienteRoute: typeof AuthenticatedPortalPacienteRoute
+  AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedPacientesIdRoute: typeof AuthenticatedPacientesIdRoute
   AuthenticatedProntuarioNovoRoute: typeof AuthenticatedProntuarioNovoRoute
 }
@@ -241,8 +281,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedLembretesRoute: AuthenticatedLembretesRoute,
   AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedPortalPacienteRoute: AuthenticatedPortalPacienteRoute,
+  AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedPacientesIdRoute: AuthenticatedPacientesIdRoute,
   AuthenticatedProntuarioNovoRoute: AuthenticatedProntuarioNovoRoute,
 }
@@ -258,13 +300,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

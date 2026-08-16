@@ -1014,6 +1014,158 @@ export type Database = {
           },
         ]
       }
+      appointment_reminders: {
+        Row: {
+          appointment_id: string | null
+          channel: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          message_preview: string | null
+          metadata: Json
+          patient_id: string | null
+          recipient_type: string
+          reminder_offset_minutes: number
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          message_preview?: string | null
+          metadata?: Json
+          patient_id?: string | null
+          recipient_type: string
+          reminder_offset_minutes: number
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          message_preview?: string | null
+          metadata?: Json
+          patient_id?: string | null
+          recipient_type?: string
+          reminder_offset_minutes?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_reminders_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_reminders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          author_user_id: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          message: string
+          metadata: Json
+          ticket_id: string
+        }
+        Insert: {
+          author_user_id?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          message: string
+          metadata?: Json
+          ticket_id: string
+        }
+        Update: {
+          author_user_id?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          message?: string
+          metadata?: Json
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          app_context: Json
+          category: string
+          contact_preference: string
+          created_at: string
+          created_by: string
+          id: string
+          message: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          app_context?: Json
+          category?: string
+          contact_preference?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          app_context?: Json
+          category?: string
+          contact_preference?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
