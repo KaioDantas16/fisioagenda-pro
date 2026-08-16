@@ -10,14 +10,15 @@ import { BellRing, Clock, Copy, MessageSquare, AlertCircle, Info, PhoneOff } fro
 import { toast } from "sonner";
 import { format, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useEffectiveTherapistId } from "@/hooks/use-effective-therapist-id";
 import {
   buildPatientReminderMessage,
   buildProfessionalReminderMessage,
-  buildWhatsAppUrl,
   calculateReminderTime,
   ReminderOffset,
   ReminderRecipient
 } from "@/lib/reminders";
+import { openWhatsAppShare } from "@/lib/whatsapp-share";
 
 export const Route = createFileRoute("/_authenticated/lembretes")({
   head: () => ({ meta: [{ title: "Lembretes — FisioAgenda Pro" }] }),
@@ -37,7 +38,8 @@ type ReminderPreview = {
 };
 
 function Lembretes() {
-  const [config, setConfig] = useState({
+  const { data: therapistId } = useEffectiveTherapistId();
+  const [filters, setFilters] = useState({
     offset24h: true,
     offset10m: true,
     toPatient: true,
@@ -46,37 +48,35 @@ function Lembretes() {
   });
 
   const { data: upcomingAppointments = [], isLoading } = useQuery({
-    queryKey: ["upcoming-appointments"],
+    queryKey: ["upcoming-appointments", therapistId],
+    enabled: !!therapistId,
     queryFn: async () => {
+      if (!therapistId) return [];
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, patient:patients(*)")
+        .select("id, starts_at, therapist_id, patient_id, patient:patients(id, full_name, phone)")
+        .eq("therapist_id", therapistId)
         .gte("starts_at", now)
         .order("starts_at", { ascending: true })
         .limit(50);
 
-      if (error) {
-        // Fallback para sessions se appointments não existir/estiver vazio para uso local
-        const { data: sess, error: sessErr } = await supabase
-          .from("sessions")
-          .select("*, patient:patients(*)")
-          .gte("starts_at", now)
-          .order("starts_at", { ascending: true })
-          .limit(50);
-        if (sessErr) throw sessErr;
-        return sess || [];
-      }
+      if (error) throw error;
       return data || [];
     }
   });
 
-  const { data: currentUser } = useQuery({
-    queryKey: ["current-user-profile"],
+  const { data: clinicSettings } = useQuery({
+    queryKey: ["clinic_settings", therapistId],
+    enabled: !!therapistId,
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
-      const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+      if (!therapistId) return null;
+      const { data, error } = await supabase
+        .from("clinic_settings")
+        .select("professional_name")
+        .eq("therapist_id", therapistId)
+        .maybeSingle();
+      if (error) throw error;
       return data;
     }
   });
@@ -86,12 +86,12 @@ function Lembretes() {
 
     upcomingAppointments.forEach((appt: any) => {
       const dateLabel = format(new Date(appt.starts_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-      const pName = appt.patient?.full_name || appt.patient?.name || "Paciente";
+      const pName = appt.patient?.full_name || "Paciente";
       const pPhone = appt.patient?.phone || null;
-      const profName = currentUser?.full_name || "Seu Fisioterapeuta";
+      const profName = clinicSettings?.professional_name || "Seu Fisioterapeuta";
 
       // 24h Patient
-      if (config.offset24h && config.toPatient) {
+      if (filters.offset24h && filters.toPatient) {
         const msg = buildPatientReminderMessage({ patientName: pName, appointmentDateLabel: dateLabel, professionalName: profName });
         const time = calculateReminderTime(appt.starts_at, 1440);
         reminders.push({
@@ -101,7 +101,7 @@ function Lembretes() {
         });
       }
       // 10m Patient
-      if (config.offset10m && config.toPatient) {
+      if (filters.offset10m && filters.toPatient) {
         const msg = buildPatientReminderMessage({ patientName: pName, appointmentDateLabel: dateLabel, professionalName: profName });
         const time = calculateReminderTime(appt.starts_at, 10);
         reminders.push({
@@ -111,7 +111,7 @@ function Lembretes() {
         });
       }
       // 24h Prof
-      if (config.offset24h && config.toProfessional) {
+      if (filters.offset24h && filters.toProfessional) {
         const msg = buildProfessionalReminderMessage({ patientName: pName, appointmentDateLabel: dateLabel });
         const time = calculateReminderTime(appt.starts_at, 1440);
         reminders.push({
@@ -121,7 +121,7 @@ function Lembretes() {
         });
       }
       // 10m Prof
-      if (config.offset10m && config.toProfessional) {
+      if (filters.offset10m && filters.toProfessional) {
         const msg = buildProfessionalReminderMessage({ patientName: pName, appointmentDateLabel: dateLabel });
         const time = calculateReminderTime(appt.starts_at, 10);
         reminders.push({
@@ -137,9 +137,13 @@ function Lembretes() {
 
   const reminders = generateReminders();
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Mensagem copiada para a área de transferência");
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Mensagem copiada para a área de transferência");
+    } catch {
+      toast.error("Não foi possível copiar a mensagem");
+    }
   };
 
   return (
@@ -189,7 +193,7 @@ function Lembretes() {
         <CardContent className="p-4 flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
           <p className="text-sm text-blue-800">
-            <strong>Aviso Técnico:</strong> O envio automático por WhatsApp depende de integração oficial com provedor autorizado. Nesta versão, o sistema prepara os lembretes e permite copiar ou abrir a mensagem com segurança via seu WhatsApp local.
+            O envio automático por WhatsApp ainda não está ligado. Nesta versão, os interruptores só filtram o que aparece nesta tela. Nada é salvo no servidor. Você pode copiar ou abrir a mensagem no WhatsApp do celular.
           </p>
         </CardContent>
       </Card>
@@ -197,31 +201,31 @@ function Lembretes() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1 shadow-sm h-fit">
           <CardHeader>
-            <CardTitle className="text-lg">Configurações Ativas</CardTitle>
-            <CardDescription>Simulação dos fluxos de envio</CardDescription>
+            <CardTitle className="text-lg">Filtros desta tela</CardTitle>
+            <CardDescription>Não são salvos. Servem só para montar a lista agora.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="flex-1 cursor-pointer">Lembrete 24h antes</Label>
-              <Switch checked={config.offset24h} onCheckedChange={(v) => setConfig({...config, offset24h: v})} />
+              <Switch checked={filters.offset24h} onCheckedChange={(v) => setFilters({...filters, offset24h: v})} />
             </div>
             <div className="flex items-center justify-between">
               <Label className="flex-1 cursor-pointer">Lembrete 10m antes</Label>
-              <Switch checked={config.offset10m} onCheckedChange={(v) => setConfig({...config, offset10m: v})} />
+              <Switch checked={filters.offset10m} onCheckedChange={(v) => setFilters({...filters, offset10m: v})} />
             </div>
             <hr className="my-2" />
             <div className="flex items-center justify-between">
               <Label className="flex-1 cursor-pointer">Para Paciente</Label>
-              <Switch checked={config.toPatient} onCheckedChange={(v) => setConfig({...config, toPatient: v})} />
+              <Switch checked={filters.toPatient} onCheckedChange={(v) => setFilters({...filters, toPatient: v})} />
             </div>
             <div className="flex items-center justify-between">
               <Label className="flex-1 cursor-pointer">Para Profissional</Label>
-              <Switch checked={config.toProfessional} onCheckedChange={(v) => setConfig({...config, toProfessional: v})} />
+              <Switch checked={filters.toProfessional} onCheckedChange={(v) => setFilters({...filters, toProfessional: v})} />
             </div>
             <hr className="my-2" />
             <div className="flex items-center justify-between opacity-70">
               <Label className="flex-1">Canal: WhatsApp</Label>
-              <Switch checked={config.channelWhatsapp} disabled />
+              <Switch checked={filters.channelWhatsapp} disabled />
             </div>
           </CardContent>
         </Card>
@@ -242,7 +246,7 @@ function Lembretes() {
             ) : reminders.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground border border-dashed rounded-xl">
                 <AlertCircle className="w-8 h-8 mb-2 opacity-20" />
-                <p>Nenhum lembrete gerado com as configurações atuais.</p>
+                <p>Nenhum lembrete gerado com os filtros atuais.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -277,7 +281,7 @@ function Lembretes() {
                         size="icon"
                         variant="ghost"
                         className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background"
-                        onClick={() => copyToClipboard(rem.message)}
+                        onClick={() => void copyToClipboard(rem.message)}
                         title="Copiar mensagem"
                       >
                         <Copy className="h-3 w-3" />
@@ -285,12 +289,12 @@ function Lembretes() {
                     </div>
 
                     <div className="flex gap-2 pt-1">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => copyToClipboard(rem.message)}>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => void copyToClipboard(rem.message)}>
                         <Copy className="w-4 h-4 mr-2" /> Copiar
                       </Button>
                       {rem.recipient === 'patient' ? (
                         rem.patientPhone ? (
-                          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => window.open(buildWhatsAppUrl(rem.patientPhone!, rem.message), "_blank")}>
+                          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => openWhatsAppShare(rem.patientPhone, rem.message)}>
                             <MessageSquare className="w-4 h-4 mr-2" /> Abrir WhatsApp
                           </Button>
                         ) : (

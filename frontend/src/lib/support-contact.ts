@@ -1,3 +1,4 @@
+/** Optional public contact. Configure VITE_SUPPORT_WHATSAPP_NUMBER and VITE_SUPPORT_EMAIL in the frontend env. */
 export const supportContact = {
   whatsappNumber: import.meta.env.VITE_SUPPORT_WHATSAPP_NUMBER || "",
   email: import.meta.env.VITE_SUPPORT_EMAIL || "",
@@ -25,12 +26,6 @@ export function buildSupportMessage(input: {
     `Mensagem:`,
     input.message,
   ].join("\n");
-}
-
-export function buildWhatsAppUrl(phone: string, message: string) {
-  const clean = phone.replace(/\D/g, "");
-  if (!clean) return "";
-  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
 }
 
 export function buildMailtoUrl(email: string, subject: string, message: string) {

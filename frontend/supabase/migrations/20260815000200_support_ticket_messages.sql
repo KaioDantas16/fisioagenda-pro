@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS public.support_ticket_messages (
 CREATE INDEX IF NOT EXISTS support_ticket_messages_ticket_created_idx
   ON public.support_ticket_messages (ticket_id, created_at ASC);
 
+CREATE INDEX IF NOT EXISTS support_ticket_messages_author_created_idx
+  ON public.support_ticket_messages (author_user_id, created_at DESC);
+
 ALTER TABLE public.support_ticket_messages ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Owners and super admin read support messages"
@@ -58,6 +61,64 @@ WITH CHECK (
   )
 );
 
+CREATE OR REPLACE FUNCTION public.tg_support_ticket_messages_before_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  recent_count integer;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Autenticacao obrigatoria para comentar chamado';
+  END IF;
+
+  -- Serializa a cota por usuario nesta transacao.
+  -- Namespace 872402 = comentarios; distinto de 872401 = chamados.
+  PERFORM pg_advisory_xact_lock(872402, hashtext(auth.uid()::text));
+
+  NEW.id := gen_random_uuid();
+  NEW.author_user_id := auth.uid();
+  NEW.created_at := now();
+  NEW.metadata := '{}'::jsonb;
+
+  IF NOT public.is_super_admin(auth.uid()) THEN
+    NEW.is_internal := false;
+  END IF;
+
+  SELECT count(*)::integer
+    INTO recent_count
+  FROM public.support_ticket_messages
+  WHERE author_user_id = auth.uid()
+    AND created_at > now() - interval '1 hour';
+
+  IF recent_count >= 30 THEN
+    RAISE EXCEPTION 'Limite de comentarios atingido. Tente novamente mais tarde.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_support_ticket_messages_before_insert
+ON public.support_ticket_messages;
+
+CREATE TRIGGER trg_support_ticket_messages_before_insert
+BEFORE INSERT ON public.support_ticket_messages
+FOR EACH ROW
+EXECUTE FUNCTION public.tg_support_ticket_messages_before_insert();
+
 REVOKE ALL ON public.support_ticket_messages FROM PUBLIC;
 REVOKE ALL ON public.support_ticket_messages FROM anon;
-GRANT SELECT, INSERT ON public.support_ticket_messages TO authenticated;
+REVOKE ALL ON public.support_ticket_messages FROM authenticated;
+
+GRANT SELECT ON public.support_ticket_messages TO authenticated;
+GRANT INSERT (
+  ticket_id,
+  message,
+  is_internal
+) ON public.support_ticket_messages TO authenticated;
+
+REVOKE ALL ON FUNCTION public.tg_support_ticket_messages_before_insert() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tg_support_ticket_messages_before_insert() FROM anon;
+REVOKE ALL ON FUNCTION public.tg_support_ticket_messages_before_insert() FROM authenticated;

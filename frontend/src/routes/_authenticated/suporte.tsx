@@ -15,7 +15,6 @@ import {
   supportContact,
   buildSupportProtocol,
   buildSupportMessage,
-  buildWhatsAppUrl,
   buildMailtoUrl
 } from "@/lib/support-contact";
 import { buildSupportShareWhatsAppMessage, copyShareMessage, openWhatsAppShare } from "@/lib/whatsapp-share";
@@ -126,14 +125,7 @@ function Suporte() {
         .single();
 
       if (error) throw error;
-
-      if (data?.id) {
-        await supabase.from("support_ticket_messages").insert({
-          ticket_id: data.id,
-          message: form.message.trim(),
-          is_internal: false,
-        });
-      }
+      if (!data?.id) throw new Error("O chamado foi criado, mas o protocolo não retornou.");
 
       toast.success("Chamado aberto com sucesso!");
       setCreatedTicket(data);
@@ -228,13 +220,13 @@ function Suporte() {
                   </Button>
 
                   {supportContact.whatsappNumber ? (
-                    <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => window.open(buildWhatsAppUrl(supportContact.whatsappNumber, buildSupportMessage({
+                    <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => openWhatsAppShare(supportContact.whatsappNumber, buildSupportMessage({
                       protocol: buildSupportProtocol(createdTicket.id),
                       category: CATEGORIES[createdTicket.category as keyof typeof CATEGORIES],
                       priority: PRIORITIES[createdTicket.priority as keyof typeof PRIORITIES],
                       subject: createdTicket.subject,
                       message: createdTicket.message
-                    })), "_blank")}>
+                    }))}>
                       <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
                     </Button>
                   ) : (

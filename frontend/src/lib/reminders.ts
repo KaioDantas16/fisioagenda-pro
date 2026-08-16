@@ -47,9 +47,3 @@ export function buildProfessionalReminderMessage(input: {
     `Verifique o prontuário antes da consulta.`,
   ].filter(Boolean).join("\n");
 }
-
-export function buildWhatsAppUrl(phone: string, message: string) {
-  const clean = phone.replace(/\D/g, "");
-  if (!clean) return "";
-  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
-}
