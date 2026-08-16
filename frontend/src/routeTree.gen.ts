@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FichaTokenRouteImport } from './routes/ficha.$token'
 import { Route as AuthenticatedPortalPacienteRouteImport } from './routes/_authenticated/portal-paciente'
 import { Route as AuthenticatedPacientesRouteImport } from './routes/_authenticated/pacientes'
+import { Route as AuthenticatedFichasMedicasRouteImport } from './routes/_authenticated/fichas-medicas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
@@ -34,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FichaTokenRoute = FichaTokenRouteImport.update({
+  id: '/ficha/$token',
+  path: '/ficha/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPortalPacienteRoute =
   AuthenticatedPortalPacienteRouteImport.update({
     id: '/portal-paciente',
@@ -45,6 +52,12 @@ const AuthenticatedPacientesRoute = AuthenticatedPacientesRouteImport.update({
   path: '/pacientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFichasMedicasRoute =
+  AuthenticatedFichasMedicasRouteImport.update({
+    id: '/fichas-medicas',
+    path: '/fichas-medicas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -80,8 +93,10 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/fichas-medicas': typeof AuthenticatedFichasMedicasRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/ficha/$token': typeof FichaTokenRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -91,8 +106,10 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/fichas-medicas': typeof AuthenticatedFichasMedicasRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/ficha/$token': typeof FichaTokenRoute
   '/pacientes/$id': typeof AuthenticatedPacientesIdRoute
   '/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -104,8 +121,10 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/fichas-medicas': typeof AuthenticatedFichasMedicasRoute
   '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/portal-paciente': typeof AuthenticatedPortalPacienteRoute
+  '/ficha/$token': typeof FichaTokenRoute
   '/_authenticated/pacientes_/$id': typeof AuthenticatedPacientesIdRoute
   '/_authenticated/prontuario/novo': typeof AuthenticatedProntuarioNovoRoute
 }
@@ -117,8 +136,10 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/configuracoes'
     | '/dashboard'
+    | '/fichas-medicas'
     | '/pacientes'
     | '/portal-paciente'
+    | '/ficha/$token'
     | '/pacientes/$id'
     | '/prontuario/novo'
   fileRoutesByTo: FileRoutesByTo
@@ -128,8 +149,10 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/configuracoes'
     | '/dashboard'
+    | '/fichas-medicas'
     | '/pacientes'
     | '/portal-paciente'
+    | '/ficha/$token'
     | '/pacientes/$id'
     | '/prontuario/novo'
   id:
@@ -140,8 +163,10 @@ export interface FileRouteTypes {
     | '/_authenticated/agenda'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/fichas-medicas'
     | '/_authenticated/pacientes'
     | '/_authenticated/portal-paciente'
+    | '/ficha/$token'
     | '/_authenticated/pacientes_/$id'
     | '/_authenticated/prontuario/novo'
   fileRoutesById: FileRoutesById
@@ -150,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  FichaTokenRoute: typeof FichaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -175,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ficha/$token': {
+      id: '/ficha/$token'
+      path: '/ficha/$token'
+      fullPath: '/ficha/$token'
+      preLoaderRoute: typeof FichaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/portal-paciente': {
       id: '/_authenticated/portal-paciente'
       path: '/portal-paciente'
@@ -187,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/pacientes'
       fullPath: '/pacientes'
       preLoaderRoute: typeof AuthenticatedPacientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fichas-medicas': {
+      id: '/_authenticated/fichas-medicas'
+      path: '/fichas-medicas'
+      fullPath: '/fichas-medicas'
+      preLoaderRoute: typeof AuthenticatedFichasMedicasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -231,6 +271,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFichasMedicasRoute: typeof AuthenticatedFichasMedicasRoute
   AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedPortalPacienteRoute: typeof AuthenticatedPortalPacienteRoute
   AuthenticatedPacientesIdRoute: typeof AuthenticatedPacientesIdRoute
@@ -241,6 +282,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFichasMedicasRoute: AuthenticatedFichasMedicasRoute,
   AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedPortalPacienteRoute: AuthenticatedPortalPacienteRoute,
   AuthenticatedPacientesIdRoute: AuthenticatedPacientesIdRoute,
@@ -254,6 +296,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  FichaTokenRoute: FichaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
