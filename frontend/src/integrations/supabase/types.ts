@@ -5,6 +5,78 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
+export type PatientExportRoot = {
+  id: string
+  full_name: string
+}
+
+export type PatientExportAnamnese = {
+  id: string
+  patient_id: string
+  created_at: string | null
+  updated_at: string | null
+  chief_complaint: string | null
+  history_present: string | null
+  history_past: string | null
+  family_history: string | null
+  medications: string | null
+  habits: string | null
+}
+
+export type PatientExportFunctional = {
+  id: string
+  assessment_date: string | null
+  posture: string | null
+  gait: string | null
+  balance: string | null
+  strength: string | null
+  coordination: string | null
+  adl: string | null
+  functional_scale: string | null
+  notes: string | null
+}
+
+export type PatientExportPainMap = {
+  id: string
+  entry_date: string | null
+  region: string
+  side: string | null
+  intensity: number
+  quality: string | null
+  factors_better: string | null
+  factors_worse: string | null
+  timing: string | null
+  notes: string | null
+}
+
+export type PatientExportRom = {
+  id: string
+  measured_at: string | null
+  joint: string
+  movement: string
+  side: string | null
+  active_degrees: number | null
+  passive_degrees: number | null
+  notes: string | null
+}
+
+export type PatientExportTests = {
+  id: string
+  performed_at: string | null
+  test_name: string
+  region: string | null
+  result: string
+  notes: string | null
+}
+
+export type PatientExportPerimetry = {
+  id: string
+  measured_at: string | null
+  segment: string
+  side: string | null
+  measurement_cm: number
+  notes: string | null
+}
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -1020,6 +1092,18 @@ export type Database = {
     }
     Functions: {
       current_patient_id: { Args: never; Returns: string }
+      get_patient_export_data: {
+        Args: { _patient_id: string }
+        Returns: {
+          patient: PatientExportRoot | null
+          anamnese: PatientExportAnamnese | null
+          functional: Array<PatientExportFunctional>
+          pain_map: Array<PatientExportPainMap>
+          rom: Array<PatientExportRom>
+          tests: Array<PatientExportTests>
+          perimetry: Array<PatientExportPerimetry>
+        }
+      }
       delete_patient_cascade: {
         Args: { _patient_id: string }
         Returns: undefined

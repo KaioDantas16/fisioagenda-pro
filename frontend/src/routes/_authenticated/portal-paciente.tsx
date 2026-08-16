@@ -144,7 +144,8 @@ function PortalPaciente() {
                     <Button size="sm" variant="ghost" onClick={() => {
                       try {
                         downloadSessionReceiptPDF({ patient, session: s });
-                      } catch {
+                      } catch (err) {
+                        console.error("Operation failed", { operation: "session-receipt-pdf", module: "portal-paciente", timestamp: new Date().toISOString() });
                         toast.error("Não foi possível gerar o comprovante");
                       }
                     }}>

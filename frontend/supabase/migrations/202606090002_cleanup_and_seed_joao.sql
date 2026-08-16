@@ -24,9 +24,9 @@ BEGIN
   FROM auth.users
   WHERE email = 'jesuslenilson36@gmail.com';
 
-  -- Se não encontrar o profissional Lenilson, aborta a inserção de dados para segurança
+  -- Se o profissional nao existir, ignorar o seed opcional sem interromper o replay das migrations.
   IF v_therapist_id IS NULL THEN
-    RAISE EXCEPTION 'Profissional Lenilson (jesuslenilson36@gmail.com) nao encontrado no banco de dados. Operacao de seed cancelada.';
+    RETURN;
   END IF;
 
   -- Verifica se o paciente João Marcelo Ferreira (Teste) já existe
